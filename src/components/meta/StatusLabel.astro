@@ -1,0 +1,38 @@
+---
+import { statusLabels } from '@lib/archive';
+
+type Status = keyof typeof statusLabels;
+
+interface Props {
+  status: Status;
+}
+
+const { status } = Astro.props;
+---
+
+<span class="status-label" data-status={status}>{statusLabels[status]}</span>
+
+<style>
+  .status-label {
+    border: 1px solid var(--color-border-soft);
+    border-radius: 999px;
+    color: var(--color-meta);
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+    line-height: 1;
+    padding: 0.2rem 0.45rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .status-label[data-status='active'],
+  .status-label[data-status='ongoing'] {
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+  }
+
+  .status-label[data-status='archived'] {
+    color: var(--color-text-faint);
+  }
+</style>

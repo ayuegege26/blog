@@ -1,0 +1,142 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import CompactObjectRow from '@components/archive/CompactObjectRow.astro';
+import FeaturedObjectCard from '@components/archive/FeaturedObjectCard.astro';
+import StandardObjectCard from '@components/archive/StandardObjectCard.astro';
+import MetaLine from '@components/meta/MetaLine.astro';
+import SectionHeader from '@components/SectionHeader.astro';
+import { getArchiveObjects } from '@lib/archive';
+
+const objects = await getArchiveObjects();
+const essays = objects.filter((object) => object.data.type === 'essay');
+const journals = objects.filter((object) => object.data.type === 'journal');
+const readingObjects = [...essays, ...journals];
+const primaryEssay = readingObjects[0];
+---
+
+<BaseLayout
+  title="Essays | Ayue Observatory"
+  description="Ayue Observatory 的阅读入口，聚合随笔、观点和阶段性记录对象。"
+>
+  <main class="content-page collection-page">
+    <header class="collection-header">
+      <div class="collection-heading">
+        <p class="eyebrow">Essays</p>
+        <h1>随笔、观点与阶段性记录</h1>
+        <p>
+          这里是阅读入口，而不是普通博客列表。Essay 和 Journal 都作为 Archive Object 被编号、更新和归档，用来承载正式随笔、短记录和阶段性非技术表达。
+        </p>
+      </div>
+      <aside class="collection-ledger" aria-label="Reading index summary">
+        <MetaLine>
+          <span>{essays.length} essays</span>
+          <span>{journals.length} journals</span>
+        </MetaLine>
+        <p>Reading objects keep personal writing connected to the same archive system as research, systems and projects.</p>
+      </aside>
+    </header>
+
+    {primaryEssay && (
+      <section class="collection-section">
+        <SectionHeader
+          eyebrow="Reading Focus"
+          title="当前阅读对象"
+          note="重点阅读对象保留档案语法：编号、类型、状态、更新时间与摘要。"
+        />
+        <FeaturedObjectCard object={primaryEssay} note="Reading focus / 当前阅读对象" />
+      </section>
+    )}
+
+    <section class="collection-section">
+      <SectionHeader
+        eyebrow="Essay Objects"
+        title="随笔索引"
+        note="正式随笔和观点记录，按 Archive Object 方式组织，而不是无限文章流。"
+      />
+      <div class="grid object-grid collection-grid">
+        {essays.map((object) => <StandardObjectCard object={object} />)}
+      </div>
+    </section>
+
+    {journals.length > 0 && (
+      <section class="collection-section">
+        <SectionHeader
+          eyebrow="Journal Objects"
+          title="阶段性记录"
+          note="Journal 用于记录阶段状态、月度回顾或短记录，它们同样属于档案对象。"
+        />
+        <div class="compact-list">
+          {journals.map((object) => <CompactObjectRow object={object} />)}
+        </div>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .collection-page {
+    padding-top: 3.5rem;
+  }
+
+  .collection-header {
+    border-bottom: 1px solid var(--color-border-soft);
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.38fr);
+    padding-bottom: 3rem;
+  }
+
+  .collection-heading {
+    border-left: 1px solid var(--color-border-soft);
+    padding-left: 1.2rem;
+  }
+
+  .collection-heading h1 {
+    font-size: clamp(2.25rem, 6vw, 5rem);
+    line-height: 1;
+    margin: 0;
+  }
+
+  .collection-heading p:last-child,
+  .collection-ledger p {
+    color: var(--color-text-muted);
+    line-height: 1.8;
+  }
+
+  .collection-heading p:last-child {
+    font-size: 1.06rem;
+    max-width: 760px;
+  }
+
+  .collection-ledger {
+    align-self: end;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-card);
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .collection-section {
+    border-bottom: 1px solid var(--color-border-soft);
+    padding: 3.5rem 0;
+  }
+
+  .collection-grid {
+    margin-top: 2rem;
+  }
+
+  .compact-list {
+    border-bottom: 1px solid var(--color-border-soft);
+  }
+
+  @media (max-width: 820px) {
+    .collection-header {
+      grid-template-columns: 1fr;
+    }
+
+    .collection-ledger {
+      align-self: stretch;
+    }
+  }
+</style>

@@ -1,0 +1,151 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { fieldLabels, formatDate } from '@lib/archive';
+import MetaLine from '@components/meta/MetaLine.astro';
+import ObjectNumber from '@components/meta/ObjectNumber.astro';
+import StatusLabel from '@components/meta/StatusLabel.astro';
+import TagList from '@components/meta/TagList.astro';
+import TypeLabel from '@components/meta/TypeLabel.astro';
+
+interface Props {
+  object: CollectionEntry<'archive'>;
+  note?: string;
+}
+
+const { object, note = 'Featured object / 当前阶段重点对象' } = Astro.props;
+const data = object.data;
+const href = `/archive/${object.id}`;
+const updated = data.updated ?? data.date;
+const objectNumber = data.objectId ?? object.id;
+---
+
+<article class="featured-object-card" data-type={data.type}>
+  <a href={href} aria-label={`Read featured object ${data.title}`}>
+    <MetaLine align="between">
+      <TypeLabel type={data.type} />
+      <ObjectNumber value={objectNumber} />
+    </MetaLine>
+
+    <div class="featured-body">
+      <p class="featured-note">{note}</p>
+      <h2>{data.title}</h2>
+      <p>{data.summary}</p>
+    </div>
+
+    <div class="featured-footer">
+      <TagList tags={data.tags} limit={4} />
+      <MetaLine>
+        <StatusLabel status={data.status} />
+        <span>{fieldLabels[data.field]}</span>
+        <time datetime={updated.toISOString()}>{formatDate(updated)}</time>
+      </MetaLine>
+    </div>
+  </a>
+</article>
+
+<style>
+  .featured-object-card {
+    --object-accent: var(--color-accent);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 46%),
+      rgba(17, 21, 27, 0.86);
+    border: 1px solid color-mix(in srgb, var(--object-accent) 28%, var(--color-border-soft));
+    border-radius: var(--radius-card);
+    min-height: 310px;
+    position: relative;
+    transition:
+      background var(--motion-fast),
+      border-color var(--motion-fast);
+  }
+
+  .featured-object-card::before {
+    background: var(--object-accent);
+    content: '';
+    height: 1px;
+    left: 1rem;
+    opacity: 0.55;
+    position: absolute;
+    right: 1rem;
+    top: 0;
+  }
+
+  .featured-object-card:hover,
+  .featured-object-card:focus-within {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 46%),
+      rgba(22, 27, 34, 0.94);
+    border-color: color-mix(in srgb, var(--object-accent) 52%, var(--color-border));
+  }
+
+  .featured-object-card[data-type='essay'] {
+    --object-accent: var(--type-essay);
+  }
+
+  .featured-object-card[data-type='research'] {
+    --object-accent: var(--type-research);
+  }
+
+  .featured-object-card[data-type='system'] {
+    --object-accent: var(--type-system);
+  }
+
+  .featured-object-card[data-type='signal'] {
+    --object-accent: var(--type-signal);
+  }
+
+  .featured-object-card[data-type='project'] {
+    --object-accent: var(--type-project);
+  }
+
+  .featured-object-card[data-type='failure'] {
+    --object-accent: var(--type-failure);
+  }
+
+  .featured-object-card[data-type='experiment'] {
+    --object-accent: var(--type-experiment);
+  }
+
+  .featured-object-card[data-type='journal'] {
+    --object-accent: var(--type-journal);
+  }
+
+  a {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    min-height: inherit;
+    padding: 1.15rem;
+  }
+
+  a:focus-visible {
+    outline: 1px solid var(--object-accent);
+    outline-offset: 4px;
+  }
+
+  .featured-note {
+    color: var(--color-meta);
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+    margin: 0 0 0.9rem;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    font-size: clamp(1.45rem, 3vw, 2.25rem);
+    line-height: 1.12;
+    margin: 0 0 0.8rem;
+  }
+
+  .featured-body > p:last-child {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    line-height: 1.7;
+    margin: 0;
+    max-width: 660px;
+  }
+
+  .featured-footer {
+    display: grid;
+    gap: 1rem;
+    margin-top: auto;
+  }
+</style>

@@ -1,0 +1,158 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="About | Ayue Observatory"
+  description="关于 Ayue Observatory：一个用于沉淀研究、系统、信号、项目、实验与随笔的个人观测站。"
+>
+  <main class="content-page about-page">
+    <header class="about-header">
+      <p class="eyebrow">About</p>
+      <h1>关于 Ayue Observatory</h1>
+      <p>
+        Ayue Observatory 是一个长期运行的个人观测站，用来沉淀研究、系统、信号、项目、实验、随笔与阶段性记录。
+        它不是简历站，也不是单一主题技术教程站。
+      </p>
+    </header>
+
+    <section class="about-section">
+      <h2>它为什么存在</h2>
+      <p>
+        这个站点的核心目标，是把分散的学习、构建、观察和复盘放进同一套可长期维护的档案系统里。每个内容单位都被视为 Archive Object：它可以是一篇随笔、一条研究笔记、一次系统记录、一个项目、一份失败复盘或一段阶段性日志。
+      </p>
+      <p>
+        这样组织内容，是为了避免个人网站退化成普通文章流，也避免把项目、系统和观点割裂成互不相关的页面。这里更关心长期记录的可读性和可追踪性。
+      </p>
+    </section>
+
+    <section class="about-section">
+      <h2>如何浏览</h2>
+      <div class="browse-list">
+        <a href="/archive"><span>01</span><strong>Archive</strong><em>查看全部 Archive Object。</em></a>
+        <a href="/projects"><span>02</span><strong>Projects</strong><em>查看项目、工具和系统实验。</em></a>
+        <a href="/essays"><span>03</span><strong>Essays</strong><em>阅读随笔、观点和阶段记录。</em></a>
+      </div>
+    </section>
+
+    <section class="about-section">
+      <h2>内容领域的关系</h2>
+      <div class="field-map">
+        <div><span>Research</span><p>长期学习、基础概念、工程与模型理解。</p></div>
+        <div><span>Systems</span><p>自托管、自动化、工作流和工具链记录。</p></div>
+        <div><span>Signals</span><p>市场、数据指标和趋势观察的静态记录。</p></div>
+        <div><span>Essays</span><p>随笔、观点、短记和非技术表达。</p></div>
+        <div><span>Projects</span><p>可构建、可复盘、可继续迭代的项目对象。</p></div>
+        <div><span>Experiments</span><p>视觉、交互、模型或工具层面的试验。</p></div>
+      </div>
+    </section>
+
+    <section class="about-section quiet-note">
+      <h2>边界</h2>
+      <p>
+        首版不会接入真实 NAS 状态、金融实时数据或 Agent 运行状态，也不会把页面做成 dashboard。那些内容如果出现，也只会作为被整理过的 Archive Object，而不是实时监控。
+      </p>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .about-page {
+    max-width: 980px;
+    padding-top: 3.5rem;
+  }
+
+  .about-header {
+    border-bottom: 1px solid var(--color-border-soft);
+    border-left: 1px solid var(--color-border-soft);
+    padding: 0 0 3rem 1.2rem;
+  }
+
+  .about-header h1 {
+    font-size: clamp(2.25rem, 6vw, 5rem);
+    line-height: 1;
+    margin: 0;
+  }
+
+  .about-header p:last-child,
+  .about-section p {
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    line-height: 1.85;
+    max-width: 760px;
+  }
+
+  .about-section {
+    border-bottom: 1px solid var(--color-border-soft);
+    padding: 3rem 0;
+  }
+
+  .about-section h2 {
+    font-size: clamp(1.35rem, 3vw, 2rem);
+    line-height: 1.2;
+    margin: 0 0 1rem;
+  }
+
+  .browse-list {
+    border-bottom: 1px solid var(--color-border-soft);
+    display: grid;
+  }
+
+  .browse-list a {
+    align-items: baseline;
+    border-top: 1px solid var(--color-border-soft);
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: 2rem minmax(120px, 0.35fr) minmax(0, 1fr);
+    padding: 1rem 0;
+  }
+
+  .browse-list span,
+  .browse-list strong,
+  .field-map span {
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+  }
+
+  .browse-list span {
+    color: var(--color-meta);
+  }
+
+  .browse-list em {
+    color: var(--color-text-muted);
+    font-style: normal;
+  }
+
+  .field-map {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .field-map div {
+    border-top: 1px solid var(--color-border-soft);
+    padding-top: 1rem;
+  }
+
+  .field-map span {
+    color: var(--color-accent);
+  }
+
+  .field-map p {
+    font-size: 0.96rem;
+    margin: 0.6rem 0 0;
+  }
+
+  .quiet-note {
+    border-bottom: 0;
+  }
+
+  @media (max-width: 760px) {
+    .field-map,
+    .browse-list a {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

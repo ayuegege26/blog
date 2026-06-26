@@ -1,0 +1,181 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import CompactObjectRow from '@components/archive/CompactObjectRow.astro';
+import FeaturedObjectCard from '@components/archive/FeaturedObjectCard.astro';
+import StandardObjectCard from '@components/archive/StandardObjectCard.astro';
+import MetaLine from '@components/meta/MetaLine.astro';
+import SectionHeader from '@components/SectionHeader.astro';
+import TypeLabel from '@components/meta/TypeLabel.astro';
+import { fieldLabels, formatDate, getArchiveObjects } from '@lib/archive';
+
+const objects = await getArchiveObjects();
+const featuredObjects = objects.filter((object) => object.data.featured);
+const primaryFeatured = featuredObjects[0];
+const secondaryFeatured = featuredObjects.slice(1, 4);
+const latestUpdate = objects.reduce<Date | undefined>((latest, object) => {
+  const updated = object.data.updated ?? object.data.date;
+  if (!latest || updated.valueOf() > latest.valueOf()) return updated;
+  return latest;
+}, undefined);
+
+const objectTypes = Array.from(new Set(objects.map((object) => object.data.type)));
+const fields = Array.from(new Set(objects.map((object) => object.data.field)));
+---
+
+<BaseLayout
+  title="Archive | Ayue Observatory"
+  description="Ayue Observatory 的 Archive Object 总索引，收录被编号、归档和持续更新的对象。"
+>
+  <main class="content-page archive-page">
+    <header class="archive-page-header">
+      <div class="archive-heading">
+        <p class="eyebrow">Archive Index</p>
+        <h1>档案对象总索引</h1>
+        <p>
+          这里收录 Ayue Observatory 中被长期记录、编号、更新和归档的内容对象。它不是普通博客归档，而是研究、系统、信号、项目、实验、随笔与阶段记录的总索引。
+        </p>
+      </div>
+
+      <aside class="archive-ledger" aria-label="Archive summary">
+        <MetaLine>
+          <span>{objects.length} objects</span>
+          {latestUpdate && <time datetime={latestUpdate.toISOString()}>updated {formatDate(latestUpdate)}</time>}
+        </MetaLine>
+        <div class="ledger-types" aria-label="Object types in archive">
+          {objectTypes.map((type) => <TypeLabel type={type} />)}
+        </div>
+        <div class="ledger-fields">
+          {fields.map((field) => <span>{fieldLabels[field]}</span>)}
+        </div>
+      </aside>
+    </header>
+
+    {featuredObjects.length > 0 && (
+      <section class="archive-section featured-section">
+        <SectionHeader
+          eyebrow="Featured Objects"
+          title="当前重点档案"
+          note="优先展示当前阶段被标记为 featured 的对象。重要性来自对象状态、更新时间与档案上下文，而不是推荐位。"
+        />
+        <div class="featured-layout">
+          {primaryFeatured && <FeaturedObjectCard object={primaryFeatured} note="Archive focus / 当前重点对象" />}
+          <div class="featured-rows">
+            {secondaryFeatured.map((object) => <CompactObjectRow object={object} />)}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <section class="archive-section">
+      <SectionHeader
+        eyebrow="All Objects"
+        title="完整对象索引"
+        note="全部非草稿 Archive Object，按 featured、priority、updated/date 排序。每个对象保留编号、类型、状态、领域、更新时间与标签。"
+      />
+      <div class="grid object-grid archive-grid">
+        {objects.map((object) => <StandardObjectCard object={object} />)}
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .archive-page {
+    padding-top: 3.5rem;
+  }
+
+  .archive-page-header {
+    border-bottom: 1px solid var(--color-border-soft);
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+    padding-bottom: 3rem;
+  }
+
+  .archive-heading {
+    border-left: 1px solid var(--color-border-soft);
+    padding-left: 1.2rem;
+    position: relative;
+  }
+
+  .archive-heading::before {
+    background: var(--color-accent);
+    content: '';
+    height: 5.5rem;
+    left: -1px;
+    opacity: 0.7;
+    position: absolute;
+    top: 0;
+    width: 1px;
+  }
+
+  .archive-heading h1 {
+    font-size: clamp(2.4rem, 7vw, 5.8rem);
+    line-height: 0.98;
+    margin: 0;
+  }
+
+  .archive-heading p:last-child {
+    color: var(--color-text-muted);
+    font-size: 1.08rem;
+    line-height: 1.8;
+    margin: 1.4rem 0 0;
+    max-width: 760px;
+  }
+
+  .archive-ledger {
+    align-self: end;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-card);
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .ledger-types,
+  .ledger-fields {
+    border-top: 1px solid var(--color-border-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding-top: 1rem;
+  }
+
+  .ledger-fields span {
+    color: var(--color-meta);
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+  }
+
+  .archive-section {
+    border-bottom: 1px solid var(--color-border-soft);
+    padding: 3.5rem 0;
+  }
+
+  .featured-layout {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.72fr);
+  }
+
+  .featured-rows {
+    border-bottom: 1px solid var(--color-border-soft);
+  }
+
+  .archive-grid {
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 860px) {
+    .archive-page-header,
+    .featured-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .archive-ledger {
+      align-self: stretch;
+    }
+  }
+</style>

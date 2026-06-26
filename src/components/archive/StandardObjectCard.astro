@@ -1,0 +1,148 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { fieldLabels, formatDate } from '@lib/archive';
+import MetaLine from '@components/meta/MetaLine.astro';
+import ObjectNumber from '@components/meta/ObjectNumber.astro';
+import StatusLabel from '@components/meta/StatusLabel.astro';
+import TagList from '@components/meta/TagList.astro';
+import TypeLabel from '@components/meta/TypeLabel.astro';
+
+interface Props {
+  object: CollectionEntry<'archive'>;
+  selected?: boolean;
+}
+
+const { object, selected = false } = Astro.props;
+const data = object.data;
+const href = `/archive/${object.id}`;
+const updated = data.updated ?? data.date;
+const objectNumber = data.objectId ?? object.id;
+---
+
+<article class:list={['standard-object-card', selected && 'is-selected']} data-type={data.type}>
+  <a href={href} aria-label={`Read ${data.title}`}>
+    <MetaLine align="between">
+      <TypeLabel type={data.type} />
+      <ObjectNumber value={objectNumber} />
+    </MetaLine>
+
+    <div class="object-card-body">
+      <h2>{data.title}</h2>
+      <p>{data.summary}</p>
+    </div>
+
+    <div class="object-card-footer">
+      <TagList tags={data.tags} />
+      <MetaLine align="between">
+        <StatusLabel status={data.status} />
+        <span>{fieldLabels[data.field]}</span>
+        <time datetime={updated.toISOString()}>{formatDate(updated)}</time>
+      </MetaLine>
+    </div>
+  </a>
+</article>
+
+<style>
+  .standard-object-card {
+    --object-accent: var(--color-accent);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 42%),
+      rgba(17, 21, 27, 0.76);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-card);
+    min-height: 250px;
+    position: relative;
+    transition:
+      background var(--motion-fast),
+      border-color var(--motion-fast),
+      transform var(--motion-fast);
+  }
+
+  .standard-object-card::before {
+    background: var(--object-accent);
+    content: '';
+    height: calc(100% - 1.2rem);
+    left: 0;
+    opacity: 0.38;
+    position: absolute;
+    top: 0.6rem;
+    width: 1px;
+  }
+
+  .standard-object-card:hover,
+  .standard-object-card:focus-within,
+  .standard-object-card.is-selected {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent 42%),
+      rgba(22, 27, 34, 0.9);
+    border-color: color-mix(in srgb, var(--object-accent) 42%, var(--color-border));
+    transform: translateY(-2px);
+  }
+
+  .standard-object-card.is-selected::before,
+  .standard-object-card:hover::before {
+    opacity: 0.72;
+  }
+
+  .standard-object-card[data-type='essay'] {
+    --object-accent: var(--type-essay);
+  }
+
+  .standard-object-card[data-type='research'] {
+    --object-accent: var(--type-research);
+  }
+
+  .standard-object-card[data-type='system'] {
+    --object-accent: var(--type-system);
+  }
+
+  .standard-object-card[data-type='signal'] {
+    --object-accent: var(--type-signal);
+  }
+
+  .standard-object-card[data-type='project'] {
+    --object-accent: var(--type-project);
+  }
+
+  .standard-object-card[data-type='failure'] {
+    --object-accent: var(--type-failure);
+  }
+
+  .standard-object-card[data-type='experiment'] {
+    --object-accent: var(--type-experiment);
+  }
+
+  .standard-object-card[data-type='journal'] {
+    --object-accent: var(--type-journal);
+  }
+
+  a {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    min-height: inherit;
+    padding: 1rem 1rem 1rem 1.1rem;
+  }
+
+  a:focus-visible {
+    outline: 1px solid var(--object-accent);
+    outline-offset: 4px;
+  }
+
+  .object-card-body h2 {
+    font-size: 1.08rem;
+    line-height: 1.35;
+    margin: 0 0 0.6rem;
+  }
+
+  .object-card-body p {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  .object-card-footer {
+    display: grid;
+    gap: 1rem;
+    margin-top: auto;
+  }
+</style>

@@ -1,0 +1,21 @@
+---
+interface Props {
+  value: string;
+}
+
+const { value } = Astro.props;
+---
+
+<span class="object-number">{value}</span>
+
+<style>
+  .object-number {
+    color: var(--color-meta);
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+</style>

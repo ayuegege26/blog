@@ -1,0 +1,42 @@
+---
+interface Props {
+  align?: 'start' | 'between';
+}
+
+const { align = 'start' } = Astro.props;
+---
+
+<div class:list={['meta-line', `meta-line--${align}`]}>
+  <slot />
+</div>
+
+<style>
+  .meta-line {
+    align-items: center;
+    color: var(--color-meta);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+
+  .meta-line--between {
+    justify-content: space-between;
+  }
+
+  .meta-line :global(time),
+  .meta-line :global(span:not(.type-label):not(.object-number):not(.status-label)) {
+    color: var(--color-meta);
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 520px) {
+    .meta-line--between {
+      justify-content: flex-start;
+    }
+  }
+</style>

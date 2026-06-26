@@ -1,0 +1,57 @@
+---
+interface Props {
+  label: string;
+  text: string;
+  stamp?: string;
+  href?: string;
+}
+
+const { label, text, stamp, href } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+
+<Tag class="observation-entry" href={href}>
+  <div class="entry-meta">
+    <span>{label}</span>
+    {stamp && <time>{stamp}</time>}
+  </div>
+  <p>{text}</p>
+</Tag>
+
+<style>
+  .observation-entry {
+    border-top: 1px solid var(--color-border-soft);
+    display: block;
+    padding: 0.9rem 0;
+    transition:
+      background var(--motion-fast),
+      color var(--motion-fast);
+  }
+
+  a.observation-entry:hover,
+  a.observation-entry:focus-visible {
+    background: rgba(255, 255, 255, 0.018);
+    color: var(--color-text);
+    outline: none;
+  }
+
+  .entry-meta {
+    align-items: center;
+    color: var(--color-meta);
+    display: flex;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    gap: 0.6rem;
+    justify-content: space-between;
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+  }
+
+  p {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0.38rem 0 0;
+  }
+</style>

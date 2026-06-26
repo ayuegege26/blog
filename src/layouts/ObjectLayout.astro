@@ -1,0 +1,255 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+import CompactObjectRow from '@components/archive/CompactObjectRow.astro';
+import MetaLine from '@components/meta/MetaLine.astro';
+import ObjectNumber from '@components/meta/ObjectNumber.astro';
+import StatusLabel from '@components/meta/StatusLabel.astro';
+import TagList from '@components/meta/TagList.astro';
+import TypeLabel from '@components/meta/TypeLabel.astro';
+import { fieldLabels, formatDate } from '@lib/archive';
+
+const { entry } = Astro.props;
+const data = entry.data;
+const updated = data.updated ?? data.date;
+const objectNumber = data.objectId ?? entry.id;
+const relatedIds = data.related ?? [];
+const relatedObjects = relatedIds.length
+  ? await getCollection('archive', ({ id, data }) => relatedIds.includes(id) && !data.draft)
+  : [];
+---
+
+<BaseLayout title={`${data.title} | Ayue Observatory`} description={data.summary}>
+  <main class="content-page object-detail">
+    <header class="object-header" data-type={data.type}>
+      <div class="object-header-main">
+        <MetaLine>
+          <ObjectNumber value={objectNumber} />
+          <TypeLabel type={data.type} />
+          <StatusLabel status={data.status} />
+        </MetaLine>
+
+        <h1>{data.title}</h1>
+        <p class="summary">{data.summary}</p>
+
+        <TagList tags={data.tags} limit={6} />
+      </div>
+
+      <aside class="object-ledger" aria-label="Object metadata">
+        <div>
+          <span>Field</span>
+          <strong>{fieldLabels[data.field]}</strong>
+        </div>
+        <div>
+          <span>Date</span>
+          <time datetime={data.date.toISOString()}>{formatDate(data.date)}</time>
+        </div>
+        <div>
+          <span>Updated</span>
+          <time datetime={updated.toISOString()}>{formatDate(updated)}</time>
+        </div>
+      </aside>
+    </header>
+
+    <article class="prose object-prose">
+      <slot />
+    </article>
+
+    <footer class="object-footer">
+      <a class="back-link" href="/archive">Back to Archive Index</a>
+
+      <section class="related-objects" aria-label="Related objects">
+        <div class="related-heading">
+          <p class="eyebrow">Related Objects</p>
+          <h2>相关档案对象</h2>
+        </div>
+        {
+          relatedObjects.length > 0 ? (
+            <div class="related-list">
+              {relatedObjects.map((object) => <CompactObjectRow object={object} />)}
+            </div>
+          ) : (
+            <p class="related-placeholder">Related Objects will be added later.</p>
+          )
+        }
+      </section>
+    </footer>
+  </main>
+</BaseLayout>
+
+<style>
+  .object-detail {
+    max-width: 980px;
+  }
+
+  .object-header {
+    --object-accent: var(--color-accent);
+    border-bottom: 1px solid var(--color-border-soft);
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 0.36fr);
+    padding: 2rem 0 3rem;
+  }
+
+  .object-header[data-type='essay'] {
+    --object-accent: var(--type-essay);
+  }
+
+  .object-header[data-type='research'] {
+    --object-accent: var(--type-research);
+  }
+
+  .object-header[data-type='system'] {
+    --object-accent: var(--type-system);
+  }
+
+  .object-header[data-type='signal'] {
+    --object-accent: var(--type-signal);
+  }
+
+  .object-header[data-type='project'] {
+    --object-accent: var(--type-project);
+  }
+
+  .object-header[data-type='failure'] {
+    --object-accent: var(--type-failure);
+  }
+
+  .object-header[data-type='experiment'] {
+    --object-accent: var(--type-experiment);
+  }
+
+  .object-header[data-type='journal'] {
+    --object-accent: var(--type-journal);
+  }
+
+  .object-header-main {
+    border-left: 1px solid var(--color-border-soft);
+    padding-left: 1.2rem;
+    position: relative;
+  }
+
+  .object-header-main::before {
+    background: var(--object-accent);
+    content: '';
+    height: 5rem;
+    left: -1px;
+    opacity: 0.7;
+    position: absolute;
+    top: 0;
+    width: 1px;
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 6vw, 5rem);
+    line-height: 1.02;
+    letter-spacing: 0;
+    margin: 1rem 0;
+  }
+
+  .summary {
+    color: var(--color-text-muted);
+    font-size: 1.12rem;
+    line-height: 1.75;
+    margin: 0 0 1.25rem;
+    max-width: 720px;
+  }
+
+  .object-ledger {
+    align-self: end;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-card);
+    display: grid;
+  }
+
+  .object-ledger div {
+    border-top: 1px solid var(--color-border-soft);
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .object-ledger div:first-child {
+    border-top: 0;
+  }
+
+  .object-ledger span,
+  .object-ledger time,
+  .object-ledger strong {
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+  }
+
+  .object-ledger span {
+    color: var(--color-meta);
+  }
+
+  .object-ledger strong,
+  .object-ledger time {
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  .object-prose {
+    margin: 3rem auto 0;
+  }
+
+  .object-footer {
+    border-top: 1px solid var(--color-border-soft);
+    display: grid;
+    gap: 2.5rem;
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+  }
+
+  .back-link {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+  }
+
+  .related-heading {
+    border-bottom: 1px solid var(--color-border-soft);
+    margin-bottom: 0.5rem;
+    padding-bottom: 1rem;
+  }
+
+  .related-heading h2 {
+    font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .related-placeholder {
+    border-bottom: 1px solid var(--color-border-soft);
+    color: var(--color-meta);
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+    margin: 0;
+    padding: 1rem 0;
+    text-transform: uppercase;
+  }
+
+  .related-list {
+    border-bottom: 1px solid var(--color-border-soft);
+  }
+
+  @media (max-width: 780px) {
+    .object-header {
+      grid-template-columns: 1fr;
+    }
+
+    .object-header-main {
+      padding-left: 1rem;
+    }
+
+    .object-ledger {
+      align-self: stretch;
+    }
+  }
+</style>

@@ -1,0 +1,13 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import StandardObjectCard from '@components/archive/StandardObjectCard.astro';
+
+interface Props {
+  object: CollectionEntry<'archive'>;
+  selected?: boolean;
+}
+
+const { object, selected = false } = Astro.props;
+---
+
+<StandardObjectCard object={object} selected={selected} />

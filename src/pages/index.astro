@@ -1,0 +1,364 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import ObjectCard from '@components/ObjectCard.astro';
+import CompactObjectRow from '@components/archive/CompactObjectRow.astro';
+import FeaturedObjectCard from '@components/archive/FeaturedObjectCard.astro';
+import ObservationLog from '@components/observation/ObservationLog.astro';
+import SectionHeader from '@components/SectionHeader.astro';
+import { getArchiveObjects, getFeaturedObjects } from '@lib/archive';
+
+const objects = await getArchiveObjects();
+const featured = await getFeaturedObjects(8);
+const latest = objects[0];
+const activeProject = objects.find((object) => object.data.type === 'project');
+const fields = ['Research', 'Systems', 'Signals', 'Essays', 'Projects', 'Experiments'];
+const observationEntries = [
+  {
+    label: 'Current Focus',
+    text: '把 Archive Object 从文章流中剥离出来，形成可长期维护的档案语言。',
+  },
+  {
+    label: 'Latest Object',
+    text: latest?.data.title ?? '等待新的档案对象进入索引。',
+    href: latest ? `/archive/${latest.id}` : undefined,
+  },
+  {
+    label: 'Active Project',
+    text: activeProject?.data.title ?? '当前没有标记中的项目对象。',
+    href: activeProject ? `/archive/${activeProject.id}` : undefined,
+  },
+];
+---
+
+<BaseLayout
+  title="Ayue Observatory"
+  description="一个关于研究、系统、信号、随笔与实验的长期个人观测站。"
+>
+  <main class="home-shell">
+    <section class="hero" aria-labelledby="home-title">
+      <div class="hero-copy observatory-plate">
+        <div class="hero-kicker">
+          <span>Personal Observatory</span>
+          <span aria-hidden="true">/</span>
+          <span>Archive Index / v1</span>
+        </div>
+
+        <div class="hero-title-block">
+          <p class="eyebrow">Long-running digital archive</p>
+          <h1 id="home-title" class="page-title">Ayue Observatory</h1>
+          <p class="hero-text">一个关于研究、系统、信号、随笔与实验的长期数字档案。</p>
+        </div>
+
+        <div class="observatory-thesis">
+          <p>
+            这里不是文章流，也不是项目陈列。每一条内容都作为 Archive Object 被编号、归档、更新，并放回长期观察的上下文里。
+          </p>
+        </div>
+
+        <div class="hero-index" aria-label="Primary archive paths">
+          <a href="/archive">
+            <span>01</span>
+            <span aria-hidden="true">/</span>
+            <strong>Explore Archive</strong>
+          </a>
+          <a href="/projects">
+            <span>02</span>
+            <span aria-hidden="true">/</span>
+            <strong>View Projects</strong>
+          </a>
+          <a href="/essays">
+            <span>03</span>
+            <span aria-hidden="true">/</span>
+            <strong>Read Essays</strong>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-observation">
+        <div class="observation-anchor" aria-hidden="true">
+          <span>AO / Observing</span>
+        </div>
+        <ObservationLog
+          label="Observation Log"
+          period="Current"
+          entries={observationEntries}
+          note="Static archive context / no live telemetry"
+        />
+      </div>
+    </section>
+
+    <section class="object-strip">
+      <header class="snapshot-header">
+        <p class="eyebrow">Archive Snapshot</p>
+        <h2>当前档案切片</h2>
+        <p>首屏下沿露出精选对象与近期条目，提示这里的核心不是博客流，而是可追踪的对象索引。</p>
+      </header>
+      <div class="featured-slot">
+        {featured[0] && <FeaturedObjectCard object={featured[0]} />}
+      </div>
+      <div class="snapshot-list">
+        {featured.slice(1, 5).map((object) => <CompactObjectRow object={object} />)}
+      </div>
+    </section>
+
+    <section class="home-section">
+      <SectionHeader
+        eyebrow="Archive Objects"
+        title="精选档案对象"
+        note="以编号、类型、状态和更新时间构成的对象索引，而不是普通文章列表。"
+      />
+      <div class="grid object-grid">
+        {featured.map((object) => <ObjectCard object={object} />)}
+      </div>
+    </section>
+
+    <section class="home-section fields">
+      <SectionHeader
+        eyebrow="Current Fields"
+        title="长期观察方向"
+        note="这些不是一级栏目扩张，而是 Archive 内部持续积累的观察领域。"
+      />
+      <div class="field-list">
+        {fields.map((field, index) => (
+          <span><em>{String(index + 1).padStart(2, '0')}</em>{field}</span>
+        ))}
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .home-shell {
+    position: relative;
+  }
+
+  .home-shell::before {
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 72px 72px;
+    content: '';
+    inset: 0 auto auto 50%;
+    height: 46rem;
+    opacity: 0.18;
+    pointer-events: none;
+    position: absolute;
+    transform: translateX(-50%);
+    width: min(100vw, var(--layout-max));
+    z-index: -1;
+  }
+
+  .hero {
+    min-height: calc(100vh - 88px);
+    padding: 4.5rem 0 2.25rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr);
+    gap: 2rem;
+    align-items: stretch;
+  }
+
+  .observatory-plate {
+    border-left: 1px solid var(--color-border-soft);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 1.35rem;
+    position: relative;
+  }
+
+  .observatory-plate::before {
+    background: var(--color-accent);
+    content: '';
+    height: 7rem;
+    left: -1px;
+    opacity: 0.72;
+    position: absolute;
+    top: 18%;
+    width: 1px;
+  }
+
+  .hero-kicker {
+    align-items: center;
+    color: var(--color-meta);
+    display: flex;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    gap: 0.75rem;
+    justify-content: flex-start;
+    letter-spacing: var(--tracking-meta);
+    margin-bottom: 3rem;
+    max-width: 700px;
+    text-transform: uppercase;
+  }
+
+  .hero-title-block {
+    max-width: 780px;
+  }
+
+  .hero-text {
+    max-width: 620px;
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+    line-height: 1.65;
+  }
+
+  .observatory-thesis {
+    border-top: 1px solid var(--color-border-soft);
+    margin-top: 2.2rem;
+    max-width: 680px;
+    padding-top: 1rem;
+  }
+
+  .observatory-thesis p {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    line-height: 1.8;
+    margin: 0;
+  }
+
+  .hero-index {
+    border-bottom: 1px solid var(--color-border-soft);
+    border-top: 1px solid var(--color-border-soft);
+    display: grid;
+    margin-top: 2rem;
+    max-width: 720px;
+  }
+
+  .hero-index a {
+    align-items: center;
+    border-top: 1px solid var(--color-border-soft);
+    color: var(--color-text);
+    display: grid;
+    font-family: var(--font-mono);
+    gap: 0.75rem;
+    grid-template-columns: 2.5rem auto minmax(0, 1fr);
+    padding: 0.85rem 0;
+    transition:
+      background var(--motion-fast),
+      color var(--motion-fast);
+  }
+
+  .hero-index a:first-child {
+    border-top: 0;
+  }
+
+  .hero-index a:hover,
+  .hero-index a:focus-visible {
+    background: rgba(255, 255, 255, 0.018);
+    color: var(--color-accent);
+  }
+
+  .hero-index span {
+    color: var(--color-meta);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+  }
+
+  .hero-index strong {
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+  }
+
+  .hero-observation {
+    align-self: center;
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .observation-anchor {
+    align-items: center;
+    color: var(--color-meta);
+    display: flex;
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    justify-content: flex-start;
+    letter-spacing: var(--tracking-meta);
+    text-transform: uppercase;
+  }
+
+  .object-strip,
+  .home-section {
+    border-top: 1px solid var(--color-border-soft);
+    padding: 3.5rem 0;
+  }
+
+  .object-strip {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.46fr) minmax(0, 1.06fr) minmax(300px, 0.72fr);
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .snapshot-header {
+    border-left: 1px solid var(--color-border-soft);
+    padding-left: 1rem;
+  }
+
+  .snapshot-header h2 {
+    font-size: clamp(1.25rem, 2vw, 1.8rem);
+    line-height: 1.2;
+    margin: 0 0 0.75rem;
+  }
+
+  .snapshot-header p:last-child {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin: 0;
+  }
+
+  .snapshot-list {
+    border-bottom: 1px solid var(--color-border-soft);
+  }
+
+  .field-list {
+    border-bottom: 1px solid var(--color-border-soft);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .field-list span {
+    align-items: center;
+    border-top: 1px solid var(--color-border-soft);
+    color: var(--color-text-muted);
+    display: flex;
+    font-family: var(--font-mono);
+    gap: 0.75rem;
+    min-height: 4rem;
+    padding: 0.8rem 0;
+    text-transform: uppercase;
+  }
+
+  .field-list em {
+    color: var(--color-meta);
+    font-style: normal;
+    font-size: var(--text-meta);
+  }
+
+  @media (max-width: 820px) {
+    .hero {
+      min-height: auto;
+      grid-template-columns: 1fr;
+      padding-top: 3rem;
+    }
+
+    .observatory-plate {
+      padding-left: 1rem;
+    }
+
+    .hero-kicker {
+      margin-bottom: 2rem;
+    }
+
+    .object-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .field-list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,141 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import CompactObjectRow from '@components/archive/CompactObjectRow.astro';
+import FeaturedObjectCard from '@components/archive/FeaturedObjectCard.astro';
+import StandardObjectCard from '@components/archive/StandardObjectCard.astro';
+import MetaLine from '@components/meta/MetaLine.astro';
+import SectionHeader from '@components/SectionHeader.astro';
+import { getArchiveObjects } from '@lib/archive';
+
+const objects = await getArchiveObjects();
+const projects = objects.filter((object) => object.data.type === 'project');
+const primaryProject = projects[0];
+const relatedObjects = objects.filter((object) => ['experiment', 'system'].includes(object.data.type)).slice(0, 4);
+---
+
+<BaseLayout
+  title="Projects | Ayue Observatory"
+  description="Ayue Observatory 的项目对象索引，记录可构建、可复盘、可持续迭代的项目。"
+>
+  <main class="content-page collection-page">
+    <header class="collection-header">
+      <div class="collection-heading">
+        <p class="eyebrow">Projects</p>
+        <h1>项目、工具与系统实验</h1>
+        <p>
+          这里聚合可构建、可复盘、可继续迭代的项目对象。它不是作品集展柜，而是把项目放回长期观察、系统记录和实验路径中的索引页。
+        </p>
+      </div>
+      <aside class="collection-ledger" aria-label="Project index summary">
+        <MetaLine>
+          <span>{projects.length} project objects</span>
+          <span>{relatedObjects.length} linked notes</span>
+        </MetaLine>
+        <p>Project objects keep buildable work connected to experiments, systems and later reviews.</p>
+      </aside>
+    </header>
+
+    {primaryProject && (
+      <section class="collection-section">
+        <SectionHeader
+          eyebrow="Active Project"
+          title="当前项目对象"
+          note="重点项目以 Archive Object 的方式呈现：有编号、有状态、有更新时间，也允许后续复盘。"
+        />
+        <FeaturedObjectCard object={primaryProject} note="Project focus / 当前项目对象" />
+      </section>
+    )}
+
+    <section class="collection-section">
+      <SectionHeader
+        eyebrow="Project Objects"
+        title="项目索引"
+        note="所有 type: project 的对象。首版只保留对象索引，不做作品集式包装。"
+      />
+      <div class="grid object-grid collection-grid">
+        {projects.map((object) => <StandardObjectCard object={object} />)}
+      </div>
+    </section>
+
+    {relatedObjects.length > 0 && (
+      <section class="collection-section">
+        <SectionHeader
+          eyebrow="Related Experiments / Systems"
+          title="相关实验与系统记录"
+          note="这些对象不是项目本身，但提供项目产生、运行或复盘时需要的上下文。"
+        />
+        <div class="compact-list">
+          {relatedObjects.map((object) => <CompactObjectRow object={object} />)}
+        </div>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .collection-page {
+    padding-top: 3.5rem;
+  }
+
+  .collection-header {
+    border-bottom: 1px solid var(--color-border-soft);
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.38fr);
+    padding-bottom: 3rem;
+  }
+
+  .collection-heading {
+    border-left: 1px solid var(--color-border-soft);
+    padding-left: 1.2rem;
+  }
+
+  .collection-heading h1 {
+    font-size: clamp(2.25rem, 6vw, 5rem);
+    line-height: 1;
+    margin: 0;
+  }
+
+  .collection-heading p:last-child,
+  .collection-ledger p {
+    color: var(--color-text-muted);
+    line-height: 1.8;
+  }
+
+  .collection-heading p:last-child {
+    font-size: 1.06rem;
+    max-width: 760px;
+  }
+
+  .collection-ledger {
+    align-self: end;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-card);
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .collection-section {
+    border-bottom: 1px solid var(--color-border-soft);
+    padding: 3.5rem 0;
+  }
+
+  .collection-grid {
+    margin-top: 2rem;
+  }
+
+  .compact-list {
+    border-bottom: 1px solid var(--color-border-soft);
+  }
+
+  @media (max-width: 820px) {
+    .collection-header {
+      grid-template-columns: 1fr;
+    }
+
+    .collection-ledger {
+      align-self: stretch;
+    }
+  }
+</style>

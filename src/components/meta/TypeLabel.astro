@@ -1,0 +1,58 @@
+---
+import { typeLabels } from '@lib/archive';
+
+type ObjectType = keyof typeof typeLabels;
+
+interface Props {
+  type: ObjectType;
+}
+
+const { type } = Astro.props;
+---
+
+<span class="type-label" data-type={type}>{typeLabels[type]}</span>
+
+<style>
+  .type-label {
+    color: var(--type-accent, var(--color-accent));
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    font-weight: 600;
+    letter-spacing: var(--tracking-meta);
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .type-label[data-type='essay'] {
+    --type-accent: var(--type-essay);
+  }
+
+  .type-label[data-type='research'] {
+    --type-accent: var(--type-research);
+  }
+
+  .type-label[data-type='system'] {
+    --type-accent: var(--type-system);
+  }
+
+  .type-label[data-type='signal'] {
+    --type-accent: var(--type-signal);
+  }
+
+  .type-label[data-type='project'] {
+    --type-accent: var(--type-project);
+  }
+
+  .type-label[data-type='failure'] {
+    --type-accent: var(--type-failure);
+  }
+
+  .type-label[data-type='experiment'] {
+    --type-accent: var(--type-experiment);
+  }
+
+  .type-label[data-type='journal'] {
+    --type-accent: var(--type-journal);
+  }
+</style>
