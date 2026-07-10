@@ -27,29 +27,29 @@ const primaryEssay = readingObjects[0];
           这里是阅读入口，而不是普通博客列表。Essay 和 Journal 都作为 Archive Object 被编号、更新和归档，用来承载正式随笔、短记录和阶段性非技术表达。
         </p>
       </div>
-      <aside class="collection-ledger" aria-label="Reading index summary">
+      <aside class="collection-ledger" aria-label="阅读索引概览">
         <MetaLine>
-          <span>{essays.length} essays</span>
-          <span>{journals.length} journals</span>
+          <span>{essays.length} 篇随笔</span>
+          <span>{journals.length} 条记录</span>
         </MetaLine>
-        <p>Reading objects keep personal writing connected to the same archive system as research, systems and projects.</p>
+        <p>阅读对象让个人写作和研究、系统、项目共用同一套档案语法。</p>
       </aside>
     </header>
 
     {primaryEssay && (
       <section class="collection-section">
         <SectionHeader
-          eyebrow="Reading Focus"
+          eyebrow="阅读焦点"
           title="当前阅读对象"
           note="重点阅读对象保留档案语法：编号、类型、状态、更新时间与摘要。"
         />
-        <FeaturedObjectCard object={primaryEssay} note="Reading focus / 当前阅读对象" />
+        <FeaturedObjectCard object={primaryEssay} note="阅读焦点 / 当前阅读对象" />
       </section>
     )}
 
     <section class="collection-section">
       <SectionHeader
-        eyebrow="Essay Objects"
+        eyebrow="随笔对象"
         title="随笔索引"
         note="正式随笔和观点记录，按 Archive Object 方式组织，而不是无限文章流。"
       />
@@ -61,7 +61,7 @@ const primaryEssay = readingObjects[0];
     {journals.length > 0 && (
       <section class="collection-section">
         <SectionHeader
-          eyebrow="Journal Objects"
+          eyebrow="阶段记录"
           title="阶段性记录"
           note="Journal 用于记录阶段状态、月度回顾或短记录，它们同样属于档案对象。"
         />

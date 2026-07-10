@@ -11,19 +11,19 @@ const objects = await getArchiveObjects();
 const featured = await getFeaturedObjects(8);
 const latest = objects[0];
 const activeProject = objects.find((object) => object.data.type === 'project');
-const fields = ['Research', 'Systems', 'Signals', 'Essays', 'Projects', 'Experiments'];
+const fields = ['研究', '系统', '信号', '随笔', '项目', '实验'];
 const observationEntries = [
   {
-    label: 'Current Focus',
+    label: '当前关注',
     text: '把 Archive Object 从文章流中剥离出来，形成可长期维护的档案语言。',
   },
   {
-    label: 'Latest Object',
+    label: '最新对象',
     text: latest?.data.title ?? '等待新的档案对象进入索引。',
     href: latest ? `/archive/${latest.id}` : undefined,
   },
   {
-    label: 'Active Project',
+    label: '当前项目',
     text: activeProject?.data.title ?? '当前没有标记中的项目对象。',
     href: activeProject ? `/archive/${activeProject.id}` : undefined,
   },
@@ -44,7 +44,7 @@ const observationEntries = [
         </div>
 
         <div class="hero-title-block">
-          <p class="eyebrow">Long-running digital archive</p>
+          <p class="eyebrow">长期数字档案</p>
           <h1 id="home-title" class="page-title">Ayue Observatory</h1>
           <p class="hero-text">一个关于研究、系统、信号、随笔与实验的长期数字档案。</p>
         </div>
@@ -55,41 +55,41 @@ const observationEntries = [
           </p>
         </div>
 
-        <div class="hero-index" aria-label="Primary archive paths">
+        <div class="hero-index" aria-label="主要档案路径">
           <a href="/archive">
             <span>01</span>
             <span aria-hidden="true">/</span>
-            <strong>Explore Archive</strong>
+            <strong>浏览档案</strong>
           </a>
           <a href="/projects">
             <span>02</span>
             <span aria-hidden="true">/</span>
-            <strong>View Projects</strong>
+            <strong>查看项目</strong>
           </a>
           <a href="/essays">
             <span>03</span>
             <span aria-hidden="true">/</span>
-            <strong>Read Essays</strong>
+            <strong>阅读随笔</strong>
           </a>
         </div>
       </div>
 
       <div class="hero-observation">
         <div class="observation-anchor" aria-hidden="true">
-          <span>AO / Observing</span>
+          <span>AO / 观测中</span>
         </div>
         <ObservationLog
-          label="Observation Log"
-          period="Current"
+          label="观测记录"
+          period="当前"
           entries={observationEntries}
-          note="Static archive context / no live telemetry"
+          note="静态档案上下文 / 不接入实时数据"
         />
       </div>
     </section>
 
     <section class="object-strip">
       <header class="snapshot-header">
-        <p class="eyebrow">Archive Snapshot</p>
+        <p class="eyebrow">档案切片</p>
         <h2>当前档案切片</h2>
         <p>首屏下沿露出精选对象与近期条目，提示这里的核心不是博客流，而是可追踪的对象索引。</p>
       </header>
@@ -103,7 +103,7 @@ const observationEntries = [
 
     <section class="home-section">
       <SectionHeader
-        eyebrow="Archive Objects"
+        eyebrow="档案对象"
         title="精选档案对象"
         note="以编号、类型、状态和更新时间构成的对象索引，而不是普通文章列表。"
       />
@@ -114,7 +114,7 @@ const observationEntries = [
 
     <section class="home-section fields">
       <SectionHeader
-        eyebrow="Current Fields"
+        eyebrow="观察方向"
         title="长期观察方向"
         note="这些不是一级栏目扩张，而是 Archive 内部持续积累的观察领域。"
       />

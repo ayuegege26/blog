@@ -35,17 +35,17 @@ const relatedObjects = relatedIds.length
         <TagList tags={data.tags} limit={6} />
       </div>
 
-      <aside class="object-ledger" aria-label="Object metadata">
+      <aside class="object-ledger" aria-label="对象元信息">
         <div>
-          <span>Field</span>
+          <span>领域</span>
           <strong>{fieldLabels[data.field]}</strong>
         </div>
         <div>
-          <span>Date</span>
+          <span>日期</span>
           <time datetime={data.date.toISOString()}>{formatDate(data.date)}</time>
         </div>
         <div>
-          <span>Updated</span>
+          <span>更新</span>
           <time datetime={updated.toISOString()}>{formatDate(updated)}</time>
         </div>
       </aside>
@@ -56,11 +56,11 @@ const relatedObjects = relatedIds.length
     </article>
 
     <footer class="object-footer">
-      <a class="back-link" href="/archive">Back to Archive Index</a>
+      <a class="back-link" href="/archive">返回档案索引</a>
 
-      <section class="related-objects" aria-label="Related objects">
+      <section class="related-objects" aria-label="相关档案对象">
         <div class="related-heading">
-          <p class="eyebrow">Related Objects</p>
+          <p class="eyebrow">相关对象</p>
           <h2>相关档案对象</h2>
         </div>
         {
@@ -69,7 +69,7 @@ const relatedObjects = relatedIds.length
               {relatedObjects.map((object) => <CompactObjectRow object={object} />)}
             </div>
           ) : (
-            <p class="related-placeholder">Related Objects will be added later.</p>
+            <p class="related-placeholder">后续会补充相关档案对象。</p>
           )
         }
       </section>

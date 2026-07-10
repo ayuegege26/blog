@@ -36,12 +36,12 @@ const fields = Array.from(new Set(objects.map((object) => object.data.field)));
         </p>
       </div>
 
-      <aside class="archive-ledger" aria-label="Archive summary">
+      <aside class="archive-ledger" aria-label="档案概览">
         <MetaLine>
-          <span>{objects.length} objects</span>
-          {latestUpdate && <time datetime={latestUpdate.toISOString()}>updated {formatDate(latestUpdate)}</time>}
+          <span>{objects.length} 个对象</span>
+          {latestUpdate && <time datetime={latestUpdate.toISOString()}>更新于 {formatDate(latestUpdate)}</time>}
         </MetaLine>
-        <div class="ledger-types" aria-label="Object types in archive">
+        <div class="ledger-types" aria-label="档案对象类型">
           {objectTypes.map((type) => <TypeLabel type={type} />)}
         </div>
         <div class="ledger-fields">
@@ -53,12 +53,12 @@ const fields = Array.from(new Set(objects.map((object) => object.data.field)));
     {featuredObjects.length > 0 && (
       <section class="archive-section featured-section">
         <SectionHeader
-          eyebrow="Featured Objects"
+          eyebrow="重点对象"
           title="当前重点档案"
-          note="优先展示当前阶段被标记为 featured 的对象。重要性来自对象状态、更新时间与档案上下文，而不是推荐位。"
+          note="优先展示当前阶段被标记为重点的对象。重要性来自对象状态、更新时间与档案上下文，而不是推荐位。"
         />
         <div class="featured-layout">
-          {primaryFeatured && <FeaturedObjectCard object={primaryFeatured} note="Archive focus / 当前重点对象" />}
+          {primaryFeatured && <FeaturedObjectCard object={primaryFeatured} note="档案焦点 / 当前重点对象" />}
           <div class="featured-rows">
             {secondaryFeatured.map((object) => <CompactObjectRow object={object} />)}
           </div>
@@ -68,7 +68,7 @@ const fields = Array.from(new Set(objects.map((object) => object.data.field)));
 
     <section class="archive-section">
       <SectionHeader
-        eyebrow="All Objects"
+        eyebrow="全部对象"
         title="完整对象索引"
         note="全部非草稿 Archive Object，按 featured、priority、updated/date 排序。每个对象保留编号、类型、状态、领域、更新时间与标签。"
       />

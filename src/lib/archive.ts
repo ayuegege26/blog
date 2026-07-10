@@ -1,31 +1,31 @@
 import { getCollection } from 'astro:content';
 
 export const typeLabels = {
-  essay: 'Essay / 随笔',
-  research: 'Research / 研究',
-  system: 'System / 系统',
-  signal: 'Signal / 信号',
-  project: 'Project / 项目',
-  failure: 'Failure / 复盘',
-  experiment: 'Experiment / 实验',
-  journal: 'Journal / 记录',
+  essay: '随笔',
+  research: '研究',
+  system: '系统',
+  signal: '信号',
+  project: '项目',
+  failure: '复盘',
+  experiment: '实验',
+  journal: '记录',
 } as const;
 
 export const statusLabels = {
-  draft: 'draft',
-  active: 'active',
-  stable: 'stable',
-  archived: 'archived',
-  ongoing: 'ongoing',
+  draft: '草稿',
+  active: '活跃',
+  stable: '稳定',
+  archived: '归档',
+  ongoing: '进行中',
 } as const;
 
 export const fieldLabels = {
-  research: 'Research',
-  systems: 'Systems',
-  signals: 'Signals',
-  essays: 'Essays',
-  projects: 'Projects',
-  experiments: 'Experiments',
+  research: '研究',
+  systems: '系统',
+  signals: '信号',
+  essays: '随笔',
+  projects: '项目',
+  experiments: '实验',
 } as const;
 
 function getObjectTimeValue(object: { data: { updated?: Date; date: Date } }) {

@@ -26,29 +26,29 @@ const relatedObjects = objects.filter((object) => ['experiment', 'system'].inclu
           这里聚合可构建、可复盘、可继续迭代的项目对象。它不是作品集展柜，而是把项目放回长期观察、系统记录和实验路径中的索引页。
         </p>
       </div>
-      <aside class="collection-ledger" aria-label="Project index summary">
+      <aside class="collection-ledger" aria-label="项目索引概览">
         <MetaLine>
-          <span>{projects.length} project objects</span>
-          <span>{relatedObjects.length} linked notes</span>
+          <span>{projects.length} 个项目对象</span>
+          <span>{relatedObjects.length} 条关联记录</span>
         </MetaLine>
-        <p>Project objects keep buildable work connected to experiments, systems and later reviews.</p>
+        <p>项目对象把可构建的工作放回实验、系统和后续复盘的上下文里。</p>
       </aside>
     </header>
 
     {primaryProject && (
       <section class="collection-section">
         <SectionHeader
-          eyebrow="Active Project"
+          eyebrow="当前项目"
           title="当前项目对象"
           note="重点项目以 Archive Object 的方式呈现：有编号、有状态、有更新时间，也允许后续复盘。"
         />
-        <FeaturedObjectCard object={primaryProject} note="Project focus / 当前项目对象" />
+        <FeaturedObjectCard object={primaryProject} note="项目焦点 / 当前项目对象" />
       </section>
     )}
 
     <section class="collection-section">
       <SectionHeader
-        eyebrow="Project Objects"
+        eyebrow="项目对象"
         title="项目索引"
         note="所有 type: project 的对象。首版只保留对象索引，不做作品集式包装。"
       />
@@ -60,7 +60,7 @@ const relatedObjects = objects.filter((object) => ['experiment', 'system'].inclu
     {relatedObjects.length > 0 && (
       <section class="collection-section">
         <SectionHeader
-          eyebrow="Related Experiments / Systems"
+          eyebrow="相关实验 / 系统"
           title="相关实验与系统记录"
           note="这些对象不是项目本身，但提供项目产生、运行或复盘时需要的上下文。"
         />

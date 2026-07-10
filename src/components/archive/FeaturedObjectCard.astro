@@ -12,7 +12,7 @@ interface Props {
   note?: string;
 }
 
-const { object, note = 'Featured object / 当前阶段重点对象' } = Astro.props;
+const { object, note = '重点对象 / 当前阶段重点对象' } = Astro.props;
 const data = object.data;
 const href = `/archive/${object.id}`;
 const updated = data.updated ?? data.date;
@@ -20,7 +20,7 @@ const objectNumber = data.objectId ?? object.id;
 ---
 
 <article class="featured-object-card" data-type={data.type}>
-  <a href={href} aria-label={`Read featured object ${data.title}`}>
+  <a href={href} aria-label={`阅读重点对象：${data.title}`}>
     <MetaLine align="between">
       <TypeLabel type={data.type} />
       <ObjectNumber value={objectNumber} />
