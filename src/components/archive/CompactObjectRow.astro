@@ -95,6 +95,10 @@ const objectNumber = data.objectId ?? object.id;
     --object-accent: var(--type-journal);
   }
 
+  .compact-object-row[data-type='unknown'] {
+    --object-accent: var(--type-unknown);
+  }
+
   a {
     display: grid;
     gap: 0.62rem;

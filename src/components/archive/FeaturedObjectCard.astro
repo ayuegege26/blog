@@ -107,6 +107,10 @@ const objectNumber = data.objectId ?? object.id;
     --object-accent: var(--type-journal);
   }
 
+  .featured-object-card[data-type='unknown'] {
+    --object-accent: var(--type-unknown);
+  }
+
   a {
     display: flex;
     flex-direction: column;

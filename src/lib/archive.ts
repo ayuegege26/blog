@@ -9,6 +9,7 @@ export const typeLabels = {
   failure: '复盘',
   experiment: '实验',
   journal: '记录',
+  unknown: '未知',
 } as const;
 
 export const statusLabels = {
@@ -17,6 +18,7 @@ export const statusLabels = {
   stable: '稳定',
   archived: '归档',
   ongoing: '进行中',
+  future: '未来',
 } as const;
 
 export const fieldLabels = {
