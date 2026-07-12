@@ -1,0 +1,119 @@
+# Ayue Observatory / 个人观测站
+
+Ayue Observatory 是一个长期运行的个人观测站，用于沉淀研究、系统、信号、随笔、项目与实验。
+
+这个站点不是普通博客、作品集、SaaS 面板、NAS 状态页或实时监控仪表盘。它的核心单位是 **Archive Object（档案对象）**：一种带编号、带类型、带日期、可维护的内容对象——可以被索引、打开、更新，并与未来的对象建立关联。
+
+---
+
+## 本地命令
+
+```bash
+npm install
+npm run dev        # 启动开发服务器
+npm run build      # 构建生产版本
+npm run preview    # 预览构建结果
+```
+
+开发服务器基于 Astro，在本工作区也可用 `scripts/start-dev.ps1` 启动在 `127.0.0.1:4321`。
+
+---
+
+## 内容模型
+
+Archive Object 内容存放于 `src/content/archive/`，以 MDX 文件 + frontmatter 组织。
+
+### 必填字段
+
+```yaml
+title: "对象标题"
+type: "essay"
+status: "active"
+summary: "一句话摘录"
+date: "2026-06-25"
+tags:
+  - "写作"
+field: "essays"
+```
+
+### 支持的对象类型
+
+| 类型 | 说明 |
+|------|------|
+| `essay` | 随笔、观点、非技术长文 |
+| `research` | 研究笔记、学习记录 |
+| `system` | 系统架构、自托管、工具链 |
+| `signal` | 市场观察、数据指标、趋势记录 |
+| `project` | 项目、工具、产品化尝试 |
+| `failure` | 踩坑复盘、调试记录 |
+| `experiment` | 视觉、交互、模型实验 |
+| `journal` | 短记录、阶段性回顾 |
+
+### 生命周期状态
+
+- `draft` — 草稿
+- `active` — 活跃
+- `ongoing` — 进行中
+- `stable` — 已稳定
+- `archived` — 已归档
+
+站点按 `featured`（精选）、`priority`（优先级）及最近 `updated` 或 `date` 排序。
+
+---
+
+## 首版边界
+
+首版刻意避免以下功能，以保持站点专注于 Archive Object 语言和长期可维护性：
+
+- ❌ 真实 NAS 状态数据
+- ❌ 真实金融数据
+- ❌ 真实 Agent 运行状态
+- ❌ 搜索与复杂筛选
+- ❌ 评论系统
+- ❌ WebGL 动效
+- ❌ 复杂交互动画
+- ❌ 关系图谱
+- ❌ Dashboard 式指标面板
+
+---
+
+## 当前页面
+
+| 路径 | 说明 |
+|------|------|
+| `/` | Observatory 入口首页 |
+| `/archive` | 全部 Archive Object 索引 |
+| `/archive/[slug]` | 对象详情页 / 长文阅读页 |
+| `/projects` | 项目类型对象聚合 |
+| `/essays` | 随笔与日志聚合 |
+| `/about` | 站点说明 |
+| `/404` | 未索引对象页 |
+
+---
+
+## Feed 与索引
+
+- `/rss.xml` — 档案对象的 RSS Feed
+- `/sitemap-index.xml` — 由 `@astrojs/sitemap` 自动生成
+
+部署时请设置 `SITE_URL` 环境变量，以确保生成的 canonical URL 和 sitemap 使用正确的公网域名。
+
+---
+
+## 下一版本
+
+后续版本可能引入：
+
+- 轻量档案筛选
+- 更丰富的相关对象展示
+- 时间线视图
+- 静态信号报告
+- 更精确的对象关系
+
+这些扩展将继续遵循 `DESIGN_LANGUAGE.md` 和 `COMPONENT_BIBLE.md` 中的设计规范。
+
+---
+
+## 协议
+
+本项目采用 [MIT 许可证](LICENSE)。
