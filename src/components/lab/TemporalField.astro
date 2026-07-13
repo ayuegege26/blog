@@ -1,0 +1,537 @@
+<section class="temporal-field" data-temporal-field data-density="medium" aria-label="时间景观动态实验">
+  <canvas aria-hidden="true"></canvas>
+
+  <div class="field-overlay">
+    <div class="field-status" aria-live="polite">
+      <span class="status-dot"></span>
+      <span data-status>INITIALIZING</span>
+      <span data-renderer>—</span>
+    </div>
+
+    <div class="time-readout">
+      <span data-date>0000.00.00</span>
+      <strong data-time>00:00:00</strong>
+      <small>LOCAL TEMPORAL INPUT</small>
+    </div>
+
+    <div class="field-note">
+      <span>VS–001</span>
+      <p>时间决定场的温度与节奏；停留增加复杂度；指针只扰动局部空间。</p>
+    </div>
+
+    <div class="field-controls" aria-label="实验控制">
+      <button type="button" data-action="pause">暂停</button>
+      <button type="button" data-action="reset">重置</button>
+      <label>
+        <span>密度</span>
+        <select data-density-select>
+          <option value="low">低</option>
+          <option value="medium" selected>中</option>
+          <option value="high">高</option>
+        </select>
+      </label>
+      <button type="button" data-action="rules" aria-expanded="false">规则</button>
+    </div>
+
+    <aside class="field-rules" data-rules hidden>
+      <h2>运行规则</h2>
+      <dl>
+        <div><dt>小时</dt><dd>改变色温与空间明暗</dd></div>
+        <div><dt>分钟</dt><dd>推动场的长期漂移</dd></div>
+        <div><dt>停留</dt><dd>缓慢增加结构复杂度</dd></div>
+        <div><dt>指针</dt><dd>形成局部引力与波纹</dd></div>
+      </dl>
+    </aside>
+  </div>
+
+  <div class="field-message" data-message hidden>
+    <strong>图形运行时不可用</strong>
+    <p>当前设备同时无法启动 WebGL 与 Canvas 2D。</p>
+  </div>
+</section>
+
+<script>
+  type Density = 'low' | 'medium' | 'high';
+
+  const root = document.querySelector<HTMLElement>('[data-temporal-field]');
+
+  if (root) {
+    const canvas = root.querySelector<HTMLCanvasElement>('canvas')!;
+    const statusText = root.querySelector<HTMLElement>('[data-status]')!;
+    const rendererText = root.querySelector<HTMLElement>('[data-renderer]')!;
+    const timeText = root.querySelector<HTMLElement>('[data-time]')!;
+    const dateText = root.querySelector<HTMLElement>('[data-date]')!;
+    const pauseButton = root.querySelector<HTMLButtonElement>('[data-action="pause"]')!;
+    const resetButton = root.querySelector<HTMLButtonElement>('[data-action="reset"]')!;
+    const rulesButton = root.querySelector<HTMLButtonElement>('[data-action="rules"]')!;
+    const rules = root.querySelector<HTMLElement>('[data-rules]')!;
+    const densitySelect = root.querySelector<HTMLSelectElement>('[data-density-select]')!;
+    const message = root.querySelector<HTMLElement>('[data-message]')!;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    let paused = reduceMotion.matches;
+    let density: Density = reduceMotion.matches ? 'low' : 'medium';
+    let startedAt = performance.now();
+    let frame = 0;
+    let animationId = 0;
+    let pointerX = 0.5;
+    let pointerY = 0.5;
+    let pointerEnergy = 0;
+    let renderer: 'webgl' | 'canvas' | 'unsupported' = 'unsupported';
+    let cleanupRenderer = () => {};
+    let renderFrame: (time: number) => void = () => {};
+
+    densitySelect.value = density;
+    root.dataset.density = density;
+
+    const vertexSource = `
+      attribute vec2 a_position;
+      void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
+    `;
+
+    const fragmentSource = `
+      precision highp float;
+      uniform vec2 u_resolution;
+      uniform vec2 u_pointer;
+      uniform float u_time;
+      uniform float u_clock;
+      uniform float u_energy;
+      uniform float u_density;
+
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      }
+
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+                   mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+      }
+
+      float field(vec2 p) {
+        float total = 0.0;
+        float amplitude = 0.55;
+        for (int i = 0; i < 5; i++) {
+          total += noise(p) * amplitude;
+          p = mat2(1.6, -1.2, 1.2, 1.6) * p + 0.17;
+          amplitude *= 0.48;
+        }
+        return total;
+      }
+
+      void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+        vec2 p = uv - 0.5;
+        p.x *= u_resolution.x / u_resolution.y;
+        float slow = u_time * 0.025;
+        float complexity = 2.1 + u_density * 0.7;
+        vec2 drift = vec2(slow, -slow * 0.63);
+        float n = field(p * complexity + drift);
+        float bands = sin((p.y + n * 0.32 + slow * 0.35) * 18.0) * 0.5 + 0.5;
+
+        vec2 pointer = u_pointer - 0.5;
+        pointer.x *= u_resolution.x / u_resolution.y;
+        float distanceToPointer = length(p - pointer);
+        float ripple = sin(distanceToPointer * 34.0 - u_time * 1.8) * exp(-distanceToPointer * 7.0) * u_energy;
+
+        float hourWarmth = sin(u_clock * 6.2831853) * 0.5 + 0.5;
+        vec3 night = vec3(0.018, 0.035, 0.050);
+        vec3 cyan = vec3(0.22, 0.58, 0.62);
+        vec3 amber = vec3(0.63, 0.43, 0.20);
+        vec3 accent = mix(cyan, amber, hourWarmth * 0.58);
+        float light = smoothstep(0.47, 0.86, n + bands * 0.12 + ripple * 0.16);
+        float grain = (hash(gl_FragCoord.xy + u_time) - 0.5) * 0.035;
+        vec3 color = night + accent * light * (0.35 + n * 0.72) + grain;
+        color *= 0.82 + 0.18 * smoothstep(0.85, 0.15, length(p));
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `;
+
+    function compileShader(gl: WebGLRenderingContext, type: number, source: string) {
+      const shader = gl.createShader(type);
+      if (!shader) throw new Error('Unable to create shader');
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        throw new Error(gl.getShaderInfoLog(shader) ?? 'Shader compilation failed');
+      }
+      return shader;
+    }
+
+    function setupWebGL() {
+      const gl = canvas.getContext('webgl', { alpha: false, antialias: false, powerPreference: 'high-performance' });
+      if (!gl) return false;
+
+      const program = gl.createProgram();
+      if (!program) return false;
+      gl.attachShader(program, compileShader(gl, gl.VERTEX_SHADER, vertexSource));
+      gl.attachShader(program, compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource));
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
+
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const position = gl.getAttribLocation(program, 'a_position');
+      const resolution = gl.getUniformLocation(program, 'u_resolution');
+      const pointer = gl.getUniformLocation(program, 'u_pointer');
+      const time = gl.getUniformLocation(program, 'u_time');
+      const clock = gl.getUniformLocation(program, 'u_clock');
+      const energy = gl.getUniformLocation(program, 'u_energy');
+      const densityUniform = gl.getUniformLocation(program, 'u_density');
+
+      renderFrame = (now) => {
+        resizeCanvas();
+        const date = new Date();
+        const clockValue = (date.getHours() + date.getMinutes() / 60) / 24;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.useProgram(program);
+        gl.enableVertexAttribArray(position);
+        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+        gl.uniform2f(resolution, canvas.width, canvas.height);
+        gl.uniform2f(pointer, pointerX, 1 - pointerY);
+        gl.uniform1f(time, (now - startedAt) / 1000);
+        gl.uniform1f(clock, clockValue);
+        gl.uniform1f(energy, pointerEnergy);
+        gl.uniform1f(densityUniform, density === 'low' ? 0 : density === 'medium' ? 0.5 : 1);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+
+      cleanupRenderer = () => {
+        if (buffer) gl.deleteBuffer(buffer);
+        gl.deleteProgram(program);
+      };
+      renderer = 'webgl';
+      return true;
+    }
+
+    function setupCanvas() {
+      const context = canvas.getContext('2d');
+      if (!context) return false;
+
+      renderFrame = (now) => {
+        resizeCanvas();
+        const width = canvas.width;
+        const height = canvas.height;
+        const elapsed = (now - startedAt) / 1000;
+        const date = new Date();
+        const hour = date.getHours() + date.getMinutes() / 60;
+        context.fillStyle = '#071015';
+        context.fillRect(0, 0, width, height);
+        const count = density === 'low' ? 28 : density === 'medium' ? 54 : 86;
+        for (let index = 0; index < count; index++) {
+          const seed = index * 19.37 + date.getDate() * 7.1;
+          const x = (Math.sin(seed + elapsed * 0.035) * 0.42 + 0.5) * width;
+          const y = (Math.cos(seed * 0.71 - elapsed * 0.022) * 0.42 + 0.5) * height;
+          const dx = x - pointerX * width;
+          const dy = y - pointerY * height;
+          const influence = Math.max(0, 1 - Math.hypot(dx, dy) / Math.max(width, height) * 4) * pointerEnergy;
+          const radius = 1 + (index % 5) * 0.45 + influence * 5;
+          const warmth = Math.sin((hour / 24) * Math.PI * 2) * 0.5 + 0.5;
+          context.beginPath();
+          context.fillStyle = warmth > 0.55 ? `rgba(184,139,77,${0.18 + influence * 0.4})` : `rgba(94,177,187,${0.2 + influence * 0.4})`;
+          context.arc(x, y, radius, 0, Math.PI * 2);
+          context.fill();
+        }
+      };
+      renderer = 'canvas';
+      return true;
+    }
+
+    function resizeCanvas() {
+      const scale = density === 'high' ? Math.min(devicePixelRatio, 1.5) : density === 'medium' ? Math.min(devicePixelRatio, 1.25) : 1;
+      const width = Math.max(1, Math.floor(canvas.clientWidth * scale));
+      const height = Math.max(1, Math.floor(canvas.clientHeight * scale));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+    }
+
+    function updateClock() {
+      const date = new Date();
+      timeText.textContent = date.toLocaleTimeString('zh-CN', { hour12: false });
+      dateText.textContent = date.toLocaleDateString('zh-CN').replaceAll('/', '.');
+    }
+
+    function updateState() {
+      statusText.textContent = paused ? (reduceMotion.matches ? 'REDUCED' : 'PAUSED') : 'RUNNING';
+      rendererText.textContent = renderer.toUpperCase();
+      pauseButton.textContent = paused ? '继续' : '暂停';
+      root.dataset.state = paused ? 'paused' : 'running';
+    }
+
+    function tick(now: number) {
+      updateClock();
+      pointerEnergy *= 0.965;
+      if (!paused && !document.hidden) renderFrame(now);
+      frame++;
+      animationId = requestAnimationFrame(tick);
+    }
+
+    function setPaused(value: boolean) {
+      paused = value;
+      updateState();
+    }
+
+    function initialize() {
+      try {
+        if (!setupWebGL() && !setupCanvas()) {
+          renderer = 'unsupported';
+          message.hidden = false;
+          canvas.hidden = true;
+        }
+      } catch {
+        if (!setupCanvas()) {
+          renderer = 'unsupported';
+          message.hidden = false;
+          canvas.hidden = true;
+        }
+      }
+      updateState();
+      updateClock();
+      animationId = requestAnimationFrame(tick);
+    }
+
+    root.addEventListener('pointermove', (event) => {
+      const bounds = root.getBoundingClientRect();
+      pointerX = (event.clientX - bounds.left) / bounds.width;
+      pointerY = (event.clientY - bounds.top) / bounds.height;
+      pointerEnergy = 1;
+    });
+
+    root.addEventListener('pointerdown', () => { pointerEnergy = 1.35; });
+    pauseButton.addEventListener('click', () => setPaused(!paused));
+    resetButton.addEventListener('click', () => {
+      startedAt = performance.now();
+      pointerEnergy = 0;
+      pointerX = 0.5;
+      pointerY = 0.5;
+      if (paused && !reduceMotion.matches) setPaused(false);
+    });
+    densitySelect.addEventListener('change', () => {
+      density = densitySelect.value as Density;
+      root.dataset.density = density;
+    });
+    rulesButton.addEventListener('click', () => {
+      const expanded = rulesButton.getAttribute('aria-expanded') === 'true';
+      rulesButton.setAttribute('aria-expanded', String(!expanded));
+      rules.hidden = expanded;
+    });
+    reduceMotion.addEventListener('change', (event) => {
+      if (event.matches) {
+        density = 'low';
+        densitySelect.value = 'low';
+        root.dataset.density = 'low';
+        setPaused(true);
+      }
+    });
+    document.addEventListener('visibilitychange', () => updateState());
+    window.addEventListener('pagehide', () => {
+      cancelAnimationFrame(animationId);
+      cleanupRenderer();
+    }, { once: true });
+
+    initialize();
+  }
+</script>
+
+<style>
+  .temporal-field {
+    background: #061015;
+    border: 1px solid #263a42;
+    min-height: min(78vh, 820px);
+    overflow: hidden;
+    position: relative;
+  }
+
+  canvas {
+    height: 100%;
+    inset: 0;
+    position: absolute;
+    width: 100%;
+  }
+
+  .field-overlay {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr auto;
+    inset: 0;
+    padding: clamp(1rem, 3vw, 2rem);
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .field-status,
+  .time-readout,
+  .field-note,
+  .field-controls,
+  .field-rules {
+    pointer-events: auto;
+  }
+
+  .field-status {
+    align-items: center;
+    display: flex;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    gap: 0.6rem;
+    letter-spacing: 0.1em;
+  }
+
+  .status-dot {
+    background: #87c7c5;
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba(104, 198, 199, 0.65);
+    height: 6px;
+    width: 6px;
+  }
+
+  [data-state='paused'] .status-dot {
+    background: #b69b6a;
+    box-shadow: none;
+  }
+
+  .time-readout {
+    align-self: center;
+    display: grid;
+    grid-column: 1 / -1;
+    justify-self: center;
+    text-align: center;
+    text-shadow: 0 2px 18px #031014;
+  }
+
+  .time-readout span,
+  .time-readout small,
+  .field-note span {
+    color: rgba(213, 232, 230, 0.65);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+  }
+
+  .time-readout strong {
+    font-family: var(--font-mono);
+    font-size: clamp(3rem, 9vw, 8rem);
+    font-weight: 300;
+    letter-spacing: -0.07em;
+    line-height: 1;
+  }
+
+  .field-note {
+    align-self: end;
+    max-width: 25rem;
+  }
+
+  .field-note p {
+    color: rgba(222, 234, 231, 0.72);
+    font-size: 0.82rem;
+    line-height: 1.7;
+    margin: 0.5rem 0 0;
+  }
+
+  .field-controls {
+    align-items: center;
+    align-self: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
+  button,
+  select {
+    background: rgba(6, 14, 18, 0.78);
+    border: 1px solid rgba(157, 197, 202, 0.28);
+    color: #dce8e6;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    min-height: 38px;
+    padding: 0.55rem 0.75rem;
+  }
+
+  button:hover,
+  select:hover {
+    border-color: rgba(157, 214, 219, 0.7);
+  }
+
+  label span {
+    border: 1px solid rgba(157, 197, 202, 0.2);
+    border-right: 0;
+    color: #8da2a7;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    padding: 0.62rem;
+  }
+
+  .field-rules {
+    background: rgba(5, 12, 15, 0.94);
+    border: 1px solid #33464d;
+    bottom: 5rem;
+    max-width: 420px;
+    padding: 1rem;
+    position: absolute;
+    right: 2rem;
+  }
+
+  .field-rules h2 {
+    font-size: 0.82rem;
+    margin: 0 0 1rem;
+  }
+
+  .field-rules dl,
+  .field-rules div {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .field-rules div {
+    border-top: 1px solid #26383f;
+    grid-template-columns: 70px 1fr;
+    padding-top: 0.45rem;
+  }
+
+  .field-rules dt,
+  .field-rules dd {
+    color: #a7b7b9;
+    font-size: 0.72rem;
+    margin: 0;
+  }
+
+  .field-message {
+    inset: 50% auto auto 50%;
+    position: absolute;
+    text-align: center;
+    transform: translate(-50%, -50%);
+  }
+
+  @media (max-width: 700px) {
+    .temporal-field {
+      min-height: 70vh;
+    }
+
+    .field-overlay {
+      grid-template-columns: 1fr;
+    }
+
+    .field-status {
+      grid-column: 1;
+    }
+
+    .field-note {
+      display: none;
+    }
+
+    .field-controls {
+      justify-content: flex-start;
+    }
+
+    .field-rules {
+      bottom: 5.5rem;
+      left: 1rem;
+      right: 1rem;
+    }
+  }
+</style>

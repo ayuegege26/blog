@@ -1,0 +1,20 @@
+[Unit]
+Description=Ayue Observatory Lab Data Gateway
+After=network.target
+
+[Service]
+Type=simple
+User=com.dustinky.qwenpaw
+Group=AppUsers
+WorkingDirectory=/vol2/projects/ayue-observatory/lab-data
+ExecStart=/usr/bin/python3 /vol2/projects/ayue-observatory/lab-data/gateway.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/vol2/projects/ayue-observatory/dist/api/lab/v1
+
+[Install]
+WantedBy=multi-user.target

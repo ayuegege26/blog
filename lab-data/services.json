@@ -1,0 +1,7 @@
+[
+  { "id": "storage-core", "label": "Storage Core", "category": "storage", "kind": "storage", "activityLevel": "medium" },
+  { "id": "lab-web", "label": "Observatory Web", "category": "development", "kind": "tcp", "host": "127.0.0.1", "port": 8818, "activityLevel": "low" },
+  { "id": "knowledge-service", "label": "Knowledge Service", "category": "knowledge", "kind": "tcp", "host": "127.0.0.1", "port": 5667, "activityLevel": "medium" },
+  { "id": "ai-runtime", "label": "AI Runtime", "category": "automation", "kind": "tcp", "host": "127.0.0.1", "port": 11434, "activityLevel": "medium" },
+  { "id": "edge-gateway", "label": "Edge Gateway", "category": "network", "kind": "tcp", "host": "127.0.0.1", "port": 443, "activityLevel": "medium" }
+]

@@ -1,5 +1,7 @@
 # Ayue Observatory Content Replacement Plan
 
+> 状态：已完成并归档。本文档保留为 `v0.1.2` 内容替换阶段的历史记录，不再作为当前待办清单。当前工程状态见 `CURRENT_STATE.md`，下一阶段见 `NEXT_PHASE_PLAN.md`。
+
 ## 目的
 
 `CONTENT_REPLACEMENT.md` 用于第三阶段之后的具体内容替换工作。
@@ -95,8 +97,8 @@ objectId: "OBS-0001"
 
 允许的枚举仍然遵循 `CONTENT_MODEL.md`：
 
-- `type`: `essay | research | system | signal | project | failure | experiment | journal`
-- `status`: `draft | active | ongoing | stable | archived`
+- `type`: `essay | research | system | signal | project | failure | experiment | journal | unknown`
+- `status`: `draft | active | ongoing | stable | archived | future`
 - `field`: `research | systems | signals | essays | projects | experiments`
 
 ### 替换注意

@@ -1,0 +1,104 @@
+---
+import LabLayout from '@layouts/LabLayout.astro';
+---
+
+<LabLayout
+  title="Visual Systems | Lab"
+  description="浏览器图形、时间、空间与输入实验。"
+  section="Visual Systems"
+>
+  <main class="section-page">
+    <header>
+      <p>LAB SECTION / 01</p>
+      <h1>Visual Systems</h1>
+      <div class="section-copy">
+        <strong>动态前端不是装饰，而是一个可以持续运行和被观察的系统。</strong>
+        <span>Canvas / WebGL / Time / Input / Space</span>
+      </div>
+    </header>
+
+    <a class="project" href="/lab/visual-systems/temporal-field">
+      <div class="project-index">VS–001</div>
+      <div>
+        <span>AVAILABLE / CLIENT ONLY</span>
+        <h2>Temporal Field</h2>
+        <p>一个由本地时间、停留和输入持续改变的生成环境。</p>
+      </div>
+      <strong>运行项目 →</strong>
+    </a>
+  </main>
+</LabLayout>
+
+<style>
+  .section-page {
+    padding: clamp(4rem, 9vw, 8rem) 0;
+  }
+
+  header > p,
+  .section-copy span,
+  .project span,
+  .project-index,
+  .project > strong {
+    color: #78919b;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+  }
+
+  h1 {
+    font-size: clamp(3.6rem, 10vw, 10rem);
+    font-weight: 400;
+    letter-spacing: -0.07em;
+    line-height: 0.9;
+    margin: 1rem 0 2.5rem;
+  }
+
+  .section-copy {
+    border-top: 1px solid #26343a;
+    display: flex;
+    gap: 2rem;
+    justify-content: space-between;
+    padding-top: 1rem;
+  }
+
+  .section-copy strong {
+    font-size: 1.05rem;
+    font-weight: 400;
+  }
+
+  .project {
+    align-items: center;
+    border-bottom: 1px solid #26343a;
+    border-top: 1px solid #26343a;
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: 90px minmax(0, 1fr) auto;
+    margin-top: 7rem;
+    padding: 2rem 0;
+  }
+
+  .project h2 {
+    font-size: clamp(2rem, 5vw, 5rem);
+    font-weight: 400;
+    margin: 0.5rem 0;
+  }
+
+  .project p {
+    color: #94a3a8;
+    margin: 0;
+  }
+
+  .project:hover {
+    background: rgba(124, 189, 198, 0.035);
+  }
+
+  @media (max-width: 700px) {
+    .section-copy {
+      flex-direction: column;
+    }
+
+    .project {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

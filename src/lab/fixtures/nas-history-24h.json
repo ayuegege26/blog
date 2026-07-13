@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-07-13T00:00:00Z",
+  "staleAfterSeconds": 7200,
+  "sourceStatus": "ok",
+  "data": {
+    "range": "24h",
+    "resolutionSeconds": 3600,
+    "points": [
+      { "timestamp": "2026-07-12T19:00:00Z", "cpuUsageRatioAvg": 0.12, "memoryUsageRatioAvg": 0.59, "temperatureCelsiusAvg": 41.8, "storageUsageRatio": 0.624, "onlineServiceRatio": 1 },
+      { "timestamp": "2026-07-12T20:00:00Z", "cpuUsageRatioAvg": 0.27, "memoryUsageRatioAvg": 0.62, "temperatureCelsiusAvg": 43.9, "storageUsageRatio": 0.624, "onlineServiceRatio": 1 },
+      { "timestamp": "2026-07-12T21:00:00Z", "cpuUsageRatioAvg": 0.21, "memoryUsageRatioAvg": 0.63, "temperatureCelsiusAvg": 43.4, "storageUsageRatio": 0.625, "onlineServiceRatio": 0.86 },
+      { "timestamp": "2026-07-12T22:00:00Z", "cpuUsageRatioAvg": 0.16, "memoryUsageRatioAvg": 0.62, "temperatureCelsiusAvg": 42.7, "storageUsageRatio": 0.625, "onlineServiceRatio": 0.86 },
+      { "timestamp": "2026-07-12T23:00:00Z", "cpuUsageRatioAvg": 0.18, "memoryUsageRatioAvg": 0.63, "temperatureCelsiusAvg": 43.2, "storageUsageRatio": 0.625, "onlineServiceRatio": 0.86 }
+    ]
+  }
+}
