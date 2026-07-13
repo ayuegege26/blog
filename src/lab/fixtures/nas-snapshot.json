@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-07-13T00:00:00Z",
+  "staleAfterSeconds": 7200,
+  "sourceStatus": "ok",
+  "data": {
+    "system": { "id": "ayue-nas", "label": "Ayue NAS", "status": "online", "uptimeSeconds": 1642380 },
+    "metrics": { "cpuUsageRatio": 0.18, "memoryUsageRatio": 0.63, "temperatureCelsius": 43.2 },
+    "storage": { "usedBytes": 8246337208320, "totalBytes": 13194139533312, "usageRatio": 0.625, "change24hBytes": 2147483648 },
+    "backup": { "lastCompletedAt": "2026-07-12T20:10:00Z", "lastResult": "success" },
+    "services": [
+      { "id": "storage-core", "label": "Storage Core", "category": "storage", "status": "online", "availabilityRatio24h": 1, "activityLevel": "medium" },
+      { "id": "knowledge-service", "label": "Knowledge Service", "category": "knowledge", "status": "online", "availabilityRatio24h": 0.998, "activityLevel": "medium", "dependsOn": ["storage-core"] },
+      { "id": "automation-workbench", "label": "Automation Workbench", "category": "automation", "status": "online", "availabilityRatio24h": 0.991, "activityLevel": "high" },
+      { "id": "media-library", "label": "Media Library", "category": "media", "status": "maintenance", "availabilityRatio24h": 0.974, "activityLevel": "low", "dependsOn": ["storage-core"] },
+      { "id": "edge-gateway", "label": "Edge Gateway", "category": "network", "status": "online", "availabilityRatio24h": 0.999, "activityLevel": "medium" },
+      { "id": "build-station", "label": "Build Station", "category": "development", "status": "online", "availabilityRatio24h": 0.987, "activityLevel": "low" },
+      { "id": "cloud-relay", "label": "Cloud Relay", "category": "cloud", "status": "degraded", "availabilityRatio24h": 0.962, "activityLevel": "medium", "dependsOn": ["edge-gateway"] }
+    ]
+  }
+}

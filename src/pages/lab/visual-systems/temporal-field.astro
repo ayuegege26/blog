@@ -1,0 +1,84 @@
+---
+import TemporalField from '@components/lab/TemporalField.astro';
+import LabLayout from '@layouts/LabLayout.astro';
+---
+
+<LabLayout
+  title="Temporal Field | Visual Systems"
+  description="一个由本地时间、停留和输入持续改变的生成环境。"
+  section="Visual Systems / VS–001"
+>
+  <main class="project-page">
+    <header class="project-heading">
+      <div>
+        <p>VISUAL SYSTEM / VS–001</p>
+        <h1>Temporal Field</h1>
+      </div>
+      <p>一个由本地时间、停留和输入持续改变的生成环境。所有计算都在当前浏览器完成。</p>
+    </header>
+
+    <TemporalField />
+
+    <footer class="project-meta">
+      <span>WEBGL PRIMARY / CANVAS FALLBACK</span>
+      <span>LOCAL TIME / NO DATA UPLOAD</span>
+      <a href="/lab/visual-systems">返回 Visual Systems</a>
+    </footer>
+  </main>
+</LabLayout>
+
+<style>
+  .project-page {
+    padding: clamp(2rem, 5vw, 4rem) 0 2rem;
+  }
+
+  .project-heading {
+    align-items: end;
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.45fr);
+    margin-bottom: 1.5rem;
+  }
+
+  .project-heading > div > p,
+  .project-meta {
+    color: #78919b;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+  }
+
+  h1 {
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 400;
+    letter-spacing: -0.06em;
+    line-height: 0.9;
+    margin: 0.7rem 0 0;
+  }
+
+  .project-heading > p {
+    border-left: 1px solid #314148;
+    color: #9aacb0;
+    line-height: 1.8;
+    margin: 0;
+    padding-left: 1rem;
+  }
+
+  .project-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    justify-content: space-between;
+    padding-top: 1rem;
+  }
+
+  .project-meta a {
+    color: #b7d4d4;
+  }
+
+  @media (max-width: 720px) {
+    .project-heading {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

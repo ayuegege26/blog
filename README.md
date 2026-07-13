@@ -1,241 +1,195 @@
 <div align="center">
 
-# 🌙 Ayue Observatory
+# Ayue Observatory
 
-[English](#english) · [中文](#中文)
+**A long-running personal observatory for archives, experiments, systems, and signals.**
 
----
+[English](README.md) · [简体中文](README.zh-CN.md) · [v0.2.0 Release Notes](RELEASE_NOTES_v0.2.0.md)
 
 </div>
 
-<a id="english"></a>
+## Overview
 
-# Ayue Observatory
+Ayue Observatory is a personal publishing and experimentation site built with Astro. It is intentionally different from a conventional blog, portfolio, SaaS dashboard, or NAS administration panel.
 
-Ayue Observatory is a long-running personal observatory for research, systems, signals, essays, projects and experiments.
+The main site uses **Archive Objects** as its durable content unit: numbered, typed, dated records that can be indexed, revised, and related over time. The separate **Lab** area is reserved for technically ambitious browser experiments and read-only views of periodically collected infrastructure data.
 
-The site is not a normal blog, portfolio, SaaS dashboard, NAS status page, or real-time monitoring panel. Its core unit is the **Archive Object**: a numbered, typed, dated and maintainable content object that can be indexed, opened, updated and related to future objects.
+Version `0.2.0` introduces the first complete Lab foundation while preserving the restrained observatory character of the main site.
 
-## Local Commands
+## Highlights in v0.2.0
+
+- A dedicated Lab entrance in the main navigation and a restrained introduction portal on the Observatory homepage.
+- A Lab-specific layout and navigation system that remains visually and operationally isolated from the archive site.
+- **Temporal Field**, a browser-native generative time landscape with WebGL rendering and a Canvas fallback.
+- **NAS Constellation**, an interactive visualization backed by periodically collected NAS data.
+- A versioned NAS JSON schema, validation layer, fixtures, data-state simulations, collectors, and a read-only Data Gateway.
+- Hourly NAS collection with short-term 24-hour and 7-day aggregated history.
+- Separate deployment paths for the static site, collectors, and Data Gateway.
+- Windows local QA hosting with login-time startup and a same-origin proxy to the NAS data service.
+- A three-step Lab engineering documentation set covering architecture, section design, and content implementation.
+
+## Site Structure
+
+| Path | Purpose |
+| --- | --- |
+| `/` | Observatory entrance and high-level Lab introduction |
+| `/archive/` | Full Archive Object index |
+| `/archive/[slug]/` | Long-form Archive Object page |
+| `/projects/` | Project-oriented archive view |
+| `/essays/` | Essay and journal archive view |
+| `/about/` | Site intent and boundaries |
+| `/lab/` | Lab entrance and project directory |
+| `/lab/visual-systems/` | Generative and advanced visual systems |
+| `/lab/visual-systems/temporal-field/` | Temporal Field experiment |
+| `/lab/nas-observatory/` | NAS-based observational projects |
+| `/lab/nas-observatory/constellation/` | Live periodic NAS Constellation |
+| `/rss.xml` | Archive Object RSS feed |
+| `/sitemap-index.xml` | Generated sitemap index |
+
+## Architecture
+
+The project is split into three operational layers:
+
+1. **Static Observatory and Lab pages** — built by Astro into `dist/`.
+2. **Data Gateway** — a small read-only Python HTTP service bound to localhost on the NAS.
+3. **Collectors** — scheduled Python jobs that generate public, aggregated JSON snapshots.
+
+The browser only requests same-origin endpoints under `/api/lab/v1/`. Nginx forwards those requests to the local Data Gateway. Collectors never expose arbitrary filesystem access, private service names, credentials, control operations, or write endpoints.
+
+```text
+Browser
+  ├── Static pages and assets ──> Nginx ──> dist/
+  └── /api/lab/v1/* ───────────> Nginx ──> Data Gateway
+                                               └── generated public JSON
+                                                        ↑
+                                                  hourly collectors
+```
+
+## Requirements
+
+- Node.js 20 or later
+- npm
+- Python 3.11 or later for NAS collection and the Data Gateway
+- Nginx and systemd for the documented NAS deployment
+
+## Local Development
 
 ```bash
 npm install
 npm run dev
-npm run build
-npm run preview
 ```
 
-The local dev server uses Astro. In this workspace, `scripts/start-dev.ps1` can start the dev server on `127.0.0.1:4321`.
+Astro serves the development site on its normal local port. The NAS project can be developed without a real NAS by using the committed fixtures.
 
-## Content Model
+### Data modes
 
-Archive Object content lives in `src/content/archive` as MDX files with frontmatter.
+NAS Constellation supports two build-time modes:
 
-### Required fields
+- `fixture` — default mode; uses sanitized repository fixtures.
+- `gateway` — requests `/api/lab/v1/nas/snapshot` and the versioned history endpoints.
+
+Build the gateway-enabled version in PowerShell:
+
+```powershell
+$env:PUBLIC_LAB_DATA_MODE = "gateway"
+npm.cmd run build
+```
+
+The following query parameter is available for deterministic QA:
+
+```text
+?state=fresh|stale|partial|empty|unavailable|incompatible|offline
+```
+
+## Production Build and Local QA
+
+```powershell
+npm.cmd ci
+$env:PUBLIC_LAB_DATA_MODE = "gateway"
+npm.cmd run build
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
+```
+
+The local QA server serves `dist/` at `http://127.0.0.1:4321/` and proxies `/api/lab/v1/` to the configured NAS origin. Override the default origin when required:
+
+```powershell
+$env:NAS_LAB_ORIGIN = "http://your-nas-host:8818"
+```
+
+On the maintained Windows workstation, the scheduled task `Ayue Observatory Local` starts this server when the user signs in.
+
+## NAS Deployment
+
+The reference deployment uses:
+
+- Project root: `/vol2/projects/ayue-observatory`
+- Static site port: `8818`
+- Data Gateway: `127.0.0.1:18101`
+- Collector schedule: once per hour
+- Gateway service: `ayue-lab-gateway.service`
+
+Important files:
+
+| File | Responsibility |
+| --- | --- |
+| `lab-data/collector.py` | Collects public system metrics and writes atomic JSON snapshots |
+| `lab-data/gateway.py` | Serves the versioned, read-only JSON contract |
+| `lab-data/services.json` | Curated public aliases and service probes |
+| `lab-data/ayue-lab-gateway.service` | systemd service definition |
+| `lab-data/nginx-lab-api.conf` | Nginx proxy example |
+| `lab-data/deploy-nas.sh` | Repeatable NAS installation and update procedure |
+
+Before deploying, review `services.json`. Public labels must remain curated aliases; do not place secrets, private hostnames, tokens, or sensitive filesystem paths in the public dataset.
+
+## Data Contract and Privacy
+
+The public API uses schema major version `1` and provides:
+
+- `/api/lab/v1/manifest`
+- `/api/lab/v1/nas/snapshot`
+- `/api/lab/v1/nas/history?range=24h`
+- `/api/lab/v1/nas/history?range=7d`
+
+The first release exposes aggregate CPU, memory, temperature, storage, uptime, backup result, and curated service availability fields. It intentionally excludes file listings, user activity, precise private network structure, credentials, administration controls, and all server-side write operations.
+
+## Archive Object Model
+
+Archive content lives in `src/content/archive/` as MDX. Core fields include:
 
 ```yaml
 title: "Object title"
 type: "essay"
 status: "active"
-summary: "One-sentence object summary."
-date: "2026-06-25"
+summary: "A concise observation."
+date: "2026-07-13"
 tags:
-  - "Writing"
+  - "writing"
 field: "essays"
 ```
 
-### Supported object types
+Supported types are `essay`, `research`, `system`, `signal`, `project`, `failure`, `experiment`, `journal`, and `unknown`. Supported lifecycle states are `draft`, `active`, `ongoing`, `stable`, `archived`, and `future`.
 
-| Type | Description |
-|------|-------------|
-| `essay` | Essays, opinions, long-form non-technical writing |
-| `research` | Research notes, study records |
-| `system` | System architecture, self-hosted, toolchains |
-| `signal` | Market observations, data metrics, trend records |
-| `project` | Projects, tools, product attempts |
-| `failure` | Postmortems, debugging logs |
-| `experiment` | Visual, interaction, model experiments |
-| `journal` | Short records, periodic reviews |
+## Engineering Documentation
 
-### Supported lifecycle statuses
+- `CURRENT_STATE.md` — shipped capabilities and current boundaries.
+- `CHANGELOG.md` — version history.
+- `LAB_MASTER_PLAN.md` — the three-step Lab documentation framework.
+- `SITE_ARCHITECTURE_V2.md` — global static/dynamic architecture.
+- `LAB_SECTIONS.md` — Lab section themes and boundaries.
+- `LAB_CONTENT_ENGINEERING.md` — project specifications, schemas, states, and acceptance criteria.
+- `CONTENT_MODEL.md` — Archive Object schema.
+- `DESIGN_LANGUAGE.md` and `COMPONENT_BIBLE.md` — main-site visual and component rules.
 
-- `draft`
-- `active`
-- `ongoing`
-- `stable`
-- `archived`
+## Verification
 
-The site sorts objects by `featured`, `priority`, and latest `updated` or `date`.
-
-## First-Version Boundaries
-
-The first version intentionally avoids:
-
-- real NAS status data
-- real financial data
-- real Agent runtime state
-- search and complex filters
-- comments
-- WebGL
-- complex motion
-- relationship graphs
-- dashboard-style metric panels
-
-These limits keep the site focused on the Archive Object language and long-term maintainability.
-
-## Current Pages
-
-| Path | Description |
-|------|-------------|
-| `/` | Observatory entrance |
-| `/archive` | Full Archive Object index |
-| `/archive/[slug]` | Object detail / long-form reading page |
-| `/projects` | Project object index |
-| `/essays` | Essay and journal object index |
-| `/about` | Restrained site explanation |
-| `/404` | Unindexed object page |
-
-## Feeds And Indexing
-
-- `/rss.xml` — exposes Archive Objects as an RSS feed.
-- `/sitemap-index.xml` — generated by `@astrojs/sitemap`.
-
-Set `SITE_URL` during deployment so generated canonical URLs and sitemap entries use the final public domain.
-
-## Next Version
-
-Later versions may add lightweight archive filters, richer related-object presentation, timelines, static signal reports, and more precise object relationships. Those additions should continue to follow `DESIGN_LANGUAGE.md` and `COMPONENT_BIBLE.md`.
-
----
-
-<a id="中文"></a>
-
-# Ayue Observatory / 个人观测站
-
-Ayue Observatory 是一个长期运行的个人观测站，用于沉淀研究、系统、信号、随笔、项目与实验。
-
-这个站点**不是**普通博客、作品集、SaaS 面板、NAS 状态页或实时监控仪表盘。它的核心单位是 **Archive Object（档案对象）**：一种带编号、带类型、带日期、可维护的内容对象——可以被索引、打开、更新，并与未来的对象建立关联。
-
----
-
-## 本地命令
+Every completed implementation stage should run, at minimum:
 
 ```bash
-npm install
-npm run dev        # 启动开发服务器
-npm run build      # 构建生产版本
-npm run preview    # 预览构建结果
+npm run build
 ```
 
-开发服务器基于 Astro，在本工作区也可用 `scripts/start-dev.ps1` 启动在 `127.0.0.1:4321`。
+Changes involving NAS data should also verify schema-valid snapshot and history responses, Nginx configuration, Gateway service health, and the rendered `fresh`, failure, and compatibility states.
 
----
+## License
 
-## 内容模型
-
-Archive Object 内容存放于 `src/content/archive/`，以 MDX 文件 + frontmatter 组织。
-
-### 必填字段
-
-```yaml
-title: "对象标题"
-type: "essay"
-status: "active"
-summary: "一句话摘录"
-date: "2026-06-25"
-tags:
-  - "写作"
-field: "essays"
-```
-
-### 支持的对象类型
-
-| 类型 | 说明 |
-|------|------|
-| `essay` | 随笔、观点、非技术长文 |
-| `research` | 研究笔记、学习记录 |
-| `system` | 系统架构、自托管、工具链 |
-| `signal` | 市场观察、数据指标、趋势记录 |
-| `project` | 项目、工具、产品化尝试 |
-| `failure` | 踩坑复盘、调试记录 |
-| `experiment` | 视觉、交互、模型实验 |
-| `journal` | 短记录、阶段性回顾 |
-
-### 生命周期状态
-
-| 状态 | 说明 |
-|------|------|
-| `draft` | 草稿 |
-| `active` | 活跃 |
-| `ongoing` | 进行中 |
-| `stable` | 已稳定 |
-| `archived` | 已归档 |
-
-站点按 `featured`（精选）、`priority`（优先级）及最近 `updated` 或 `date` 排序。
-
----
-
-## 首版边界
-
-首版刻意避免以下功能，以保持站点专注于 Archive Object 语言和长期可维护性：
-
-- ❌ 真实 NAS 状态数据
-- ❌ 真实金融数据
-- ❌ 真实 Agent 运行状态
-- ❌ 搜索与复杂筛选
-- ❌ 评论系统
-- ❌ WebGL 动效
-- ❌ 复杂交互动画
-- ❌ 关系图谱
-- ❌ Dashboard 式指标面板
-
----
-
-## 当前页面
-
-| 路径 | 说明 |
-|------|------|
-| `/` | Observatory 入口首页 |
-| `/archive` | 全部 Archive Object 索引 |
-| `/archive/[slug]` | 对象详情页 / 长文阅读页 |
-| `/projects` | 项目类型对象聚合 |
-| `/essays` | 随笔与日志聚合 |
-| `/about` | 站点说明 |
-| `/404` | 未索引对象页 |
-
----
-
-## Feed 与索引
-
-- `/rss.xml` — 档案对象的 RSS Feed
-- `/sitemap-index.xml` — 由 `@astrojs/sitemap` 自动生成
-
-部署时请设置 `SITE_URL` 环境变量，以确保生成的 canonical URL 和 sitemap 使用正确的公网域名。
-
----
-
-## 下一版本
-
-后续版本可能引入：
-
-- 轻量档案筛选
-- 更丰富的相关对象展示
-- 时间线视图
-- 静态信号报告
-- 更精确的对象关系
-
-这些扩展将继续遵循 `DESIGN_LANGUAGE.md` 和 `COMPONENT_BIBLE.md` 中的设计规范。
-
----
-
-## 协议
-
-本项目采用 [MIT 许可证](LICENSE)。
-
----
-
-<div align="center">
-
-[English](#english) · [中文](#中文)
-
-</div>
+This project is released under the [MIT License](LICENSE).

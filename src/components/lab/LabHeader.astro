@@ -1,0 +1,103 @@
+---
+interface Props {
+  section?: string;
+}
+
+const { section } = Astro.props;
+---
+
+<header class="lab-header">
+  <a class="lab-brand" href="/lab" aria-label="返回 Lab 首页">
+    <span class="lab-mark">L</span>
+    <span>
+      <strong>Lab</strong>
+      <small>Ayue Observatory</small>
+    </span>
+  </a>
+  {section && <span class="lab-section">/ {section}</span>}
+  <nav aria-label="Lab 导航">
+    <a href="/lab/visual-systems">Visual Systems</a>
+    <a href="/lab/nas-observatory">NAS Observatory</a>
+    <a href="/">Observatory ↗</a>
+  </nav>
+</header>
+
+<style>
+  .lab-header {
+    align-items: center;
+    border-bottom: 1px solid rgba(145, 177, 190, 0.2);
+    display: flex;
+    gap: 1rem;
+    margin: 0 auto;
+    min-height: 72px;
+    padding: 0 24px;
+    width: min(100%, 1500px);
+  }
+
+  .lab-brand {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.7rem;
+  }
+
+  .lab-mark {
+    border: 1px solid rgba(142, 202, 214, 0.5);
+    display: grid;
+    font-family: var(--font-mono);
+    height: 2rem;
+    place-items: center;
+    width: 2rem;
+  }
+
+  .lab-brand > span:last-child {
+    display: grid;
+  }
+
+  .lab-brand strong,
+  .lab-brand small,
+  .lab-section,
+  nav {
+    font-family: var(--font-mono);
+  }
+
+  .lab-brand strong {
+    font-size: 0.88rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .lab-brand small,
+  .lab-section {
+    color: #7f9099;
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+  }
+
+  nav {
+    display: flex;
+    font-size: 0.72rem;
+    gap: 1.2rem;
+    margin-left: auto;
+  }
+
+  nav a:last-child {
+    color: #91a1a8;
+  }
+
+  @media (max-width: 680px) {
+    .lab-header {
+      align-items: flex-start;
+      flex-wrap: wrap;
+      padding-block: 1rem;
+    }
+
+    .lab-section {
+      display: none;
+    }
+
+    nav {
+      flex-basis: 100%;
+      margin-left: 0;
+    }
+  }
+</style>

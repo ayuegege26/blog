@@ -1,0 +1,184 @@
+---
+import LabLayout from '@layouts/LabLayout.astro';
+---
+
+<LabLayout title="Lab | Ayue Observatory" description="Ayue Observatory 的动态技术层。">
+  <main class="lab-home">
+    <section class="lab-intro">
+      <div>
+        <p class="lab-code">LAB / RUNTIME LAYER</p>
+        <h1>技术只在需要<br />被运行时出现。</h1>
+      </div>
+      <p class="lab-statement">
+        Observatory 负责观察、整理与保存；Lab 负责试验、操作与证明。这里允许动态前端、周期数据和独立运行的技术作品。
+      </p>
+    </section>
+
+    <section class="lab-sections" aria-label="Lab 板块">
+      <a class="section-card active" href="/lab/visual-systems">
+        <span>01 / AVAILABLE</span>
+        <h2>Visual Systems</h2>
+        <p>生成视觉、时间系统、空间、输入与浏览器图形实验。</p>
+        <strong>进入板块 →</strong>
+      </a>
+      <a class="section-card active" href="/lab/nas-observatory">
+        <span>02 / FIXTURE AVAILABLE</span>
+        <h2>NAS Observatory</h2>
+        <p>把周期更新的 NAS 数据转化为可观察的动态环境。</p>
+        <strong>查看 fixture →</strong>
+      </a>
+    </section>
+
+    <a class="current-project" href="/lab/visual-systems/temporal-field">
+      <span>CURRENT RUNNING PROJECT / VS–001</span>
+      <div>
+        <h2>Temporal Field</h2>
+        <p>由本地时间、停留与输入持续改变的生成环境。</p>
+      </div>
+      <strong>直接运行 →</strong>
+    </a>
+    <a class="current-project" href="/lab/nas-observatory/constellation">
+      <span>CURRENT FIXTURE PROJECT / NO–001</span>
+      <div><h2>NAS Constellation</h2><p>脱敏快照、聚合历史与全部数据状态。</p></div>
+      <strong>查看 fixture →</strong>
+    </a>
+
+    <footer class="lab-foot">
+      <span>CLIENT RUNTIME / STATIC SHELL</span>
+      <span>NO MANAGEMENT ACCESS</span>
+    </footer>
+  </main>
+</LabLayout>
+
+<style>
+  .lab-home {
+    padding: clamp(4rem, 9vw, 9rem) 0 3rem;
+  }
+
+  .lab-intro {
+    align-items: end;
+    display: grid;
+    gap: 3rem;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.55fr);
+  }
+
+  .lab-code,
+  .section-card span,
+  .section-card strong,
+  .lab-foot {
+    color: #78919b;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+  }
+
+  h1 {
+    font-size: clamp(3rem, 8vw, 8.4rem);
+    font-weight: 400;
+    letter-spacing: -0.06em;
+    line-height: 0.9;
+    margin: 1.2rem 0 0;
+  }
+
+  .lab-statement {
+    border-left: 1px solid #334149;
+    color: #a9b5b8;
+    line-height: 1.9;
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+
+  .lab-sections {
+    display: grid;
+    gap: 1px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: clamp(5rem, 10vw, 10rem);
+    background: #28343a;
+    border: 1px solid #28343a;
+  }
+
+  .section-card {
+    background: rgba(7, 11, 14, 0.96);
+    display: flex;
+    flex-direction: column;
+    min-height: 310px;
+    padding: clamp(1.4rem, 3vw, 2.5rem);
+  }
+
+  .section-card h2 {
+    font-size: clamp(2rem, 4vw, 4.5rem);
+    font-weight: 400;
+    margin: auto 0 0.8rem;
+  }
+
+  .section-card p {
+    color: #94a3a8;
+    max-width: 34rem;
+  }
+
+  .section-card strong {
+    color: #a9d2d6;
+    margin-top: 1.5rem;
+  }
+
+  .pending {
+    opacity: 0.52;
+  }
+
+  .active:hover {
+    background: #0b1216;
+  }
+
+  .current-project {
+    align-items: center;
+    border-bottom: 1px solid #28343a;
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr) auto;
+    padding: 2rem 0;
+  }
+
+  .current-project > span,
+  .current-project > strong {
+    color: #8fb1b7;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+  }
+
+  .current-project h2 {
+    font-size: clamp(1.8rem, 4vw, 3.8rem);
+    font-weight: 400;
+    margin: 0;
+  }
+
+  .current-project p {
+    color: #94a3a8;
+    margin: 0.35rem 0 0;
+  }
+
+  .current-project:hover {
+    background: rgba(124, 189, 198, 0.035);
+  }
+
+  .lab-foot {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 760px) {
+    .lab-intro,
+    .lab-sections {
+      grid-template-columns: 1fr;
+    }
+
+    .section-card {
+      min-height: 260px;
+    }
+
+    .current-project {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

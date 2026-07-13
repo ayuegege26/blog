@@ -112,6 +112,22 @@ const observationEntries = [
       </div>
     </section>
 
+    <section class="home-section lab-portal" aria-labelledby="lab-portal-title">
+      <div class="lab-portal-copy">
+        <p class="eyebrow">Dynamic Lab</p>
+        <h2 id="lab-portal-title">观察之外，技术在这里运行。</h2>
+        <p>
+          Lab 是 Ayue Observatory 的动态技术层，集中容纳生成视觉、交互实验与周期更新的 NAS 数据观察。主站保持安静阅读，运行中的技术内容留在独立空间。
+        </p>
+      </div>
+      <div class="lab-portal-index" aria-label="Lab 入口说明">
+        <span>LAB / RUNTIME LAYER</span>
+        <strong>Visual Systems 已开放</strong>
+        <span>NAS Observatory fixture 已开放</span>
+        <a href="/lab">进入 Lab <em>→</em></a>
+      </div>
+    </section>
+
     <section class="home-section fields">
       <SectionHeader
         eyebrow="观察方向"
@@ -314,6 +330,68 @@ const observationEntries = [
     border-bottom: 1px solid var(--color-border-soft);
   }
 
+  .lab-portal {
+    align-items: stretch;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+  }
+
+  .lab-portal-copy {
+    border-left: 1px solid var(--color-border-soft);
+    padding: 1rem 1rem 1.5rem;
+  }
+
+  .lab-portal-copy h2 {
+    font-size: clamp(2rem, 4vw, 4.2rem);
+    font-weight: 450;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin: 1rem 0;
+    max-width: 14ch;
+  }
+
+  .lab-portal-copy > p:last-child {
+    color: var(--color-text-muted);
+    line-height: 1.85;
+    max-width: 650px;
+  }
+
+  .lab-portal-index {
+    border: 1px solid var(--color-border-soft);
+    display: flex;
+    flex-direction: column;
+    font-family: var(--font-mono);
+    justify-content: space-between;
+    min-height: 260px;
+    padding: 1.25rem;
+  }
+
+  .lab-portal-index span {
+    color: var(--color-meta);
+    font-size: var(--text-meta);
+    letter-spacing: var(--tracking-meta);
+  }
+
+  .lab-portal-index strong {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .lab-portal-index a {
+    align-items: center;
+    border-top: 1px solid var(--color-border-soft);
+    color: var(--color-accent);
+    display: flex;
+    justify-content: space-between;
+    padding-top: 1rem;
+  }
+
+  .lab-portal-index em {
+    font-size: 1.25rem;
+    font-style: normal;
+  }
+
   .field-list {
     border-bottom: 1px solid var(--color-border-soft);
     display: grid;
@@ -354,6 +432,10 @@ const observationEntries = [
     }
 
     .object-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .lab-portal {
       grid-template-columns: 1fr;
     }
 

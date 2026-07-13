@@ -1,0 +1,255 @@
+---
+import snapshot from '../../lab/fixtures/nas-snapshot.json';
+import history24h from '../../lab/fixtures/nas-history-24h.json';
+import history7d from '../../lab/fixtures/nas-history-7d.json';
+import { validateNasHistory, validateNasSnapshot } from '../../lab/data/schema';
+
+validateNasSnapshot(snapshot);
+validateNasHistory(history24h);
+validateNasHistory(history7d);
+
+const dataMode = import.meta.env.PUBLIC_LAB_DATA_MODE === 'gateway' ? 'gateway' : 'fixture';
+---
+
+<section class="nas-constellation" data-nas-constellation data-mode={dataMode} data-state="loading">
+  <script type="application/json" data-fixture-snapshot set:html={JSON.stringify(snapshot)} />
+  <script type="application/json" data-fixture-history-24h set:html={JSON.stringify(history24h)} />
+  <script type="application/json" data-fixture-history-7d set:html={JSON.stringify(history7d)} />
+
+  <header class="constellation-bar">
+    <div class="source-state" aria-live="polite">
+      <span class="state-dot"></span>
+      <strong data-state-label>LOADING</strong>
+      <span data-generated-at>—</span>
+    </div>
+    <div class="range-control" aria-label="时间范围">
+      <button type="button" data-range="current" aria-pressed="true">当前</button>
+      <button type="button" data-range="24h" aria-pressed="false">24 小时</button>
+      <button type="button" data-range="7d" aria-pressed="false">7 天</button>
+    </div>
+  </header>
+
+  <div class="constellation-body">
+    <div class="constellation-stage" data-stage>
+      <svg viewBox="0 0 1000 620" role="img" aria-label="NAS 服务星图" data-constellation-svg></svg>
+      <div class="stage-message" data-stage-message>
+        <strong>正在读取公开快照</strong>
+        <p>数据仅来自脱敏 fixture；尚未连接真实 NAS。</p>
+      </div>
+    </div>
+
+    <aside class="system-ledger">
+      <div class="ledger-heading">
+        <span>PUBLIC SNAPSHOT</span>
+        <strong data-system-label>Ayue NAS</strong>
+      </div>
+      <dl class="metrics">
+        <div><dt>CPU</dt><dd data-cpu>—</dd></div>
+        <div><dt>Memory</dt><dd data-memory>—</dd></div>
+        <div><dt>Temperature</dt><dd data-temperature>—</dd></div>
+        <div><dt>Storage</dt><dd data-storage>—</dd></div>
+        <div><dt>Uptime</dt><dd data-uptime>—</dd></div>
+        <div><dt>Backup</dt><dd data-backup>—</dd></div>
+      </dl>
+      <div class="selected-service" data-selected-service>
+        <span>SELECTED NODE</span>
+        <strong>选择一个公开服务节点</strong>
+        <p>节点只显示人工确认可公开的别名和聚合状态。</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="history-strip" data-history-strip aria-label="聚合历史"></div>
+  <p class="fixture-note">FIXTURE MODE / QUERY `?state=fresh|stale|partial|empty|unavailable|incompatible|offline`</p>
+</section>
+
+<script>
+  import { loadNasData, type DataState, type SimulationState } from '../../lab/data/client';
+  import type { Envelope, NasHistoryData, NasService, NasSnapshotData } from '../../lab/data/schema';
+
+  const root = document.querySelector<HTMLElement>('[data-nas-constellation]');
+  if (root) {
+    const parseFixture = (selector: string) => JSON.parse(root.querySelector<HTMLScriptElement>(selector)!.textContent ?? '{}') as unknown;
+    const fixtures = {
+      snapshot: parseFixture('[data-fixture-snapshot]'),
+      history24h: parseFixture('[data-fixture-history-24h]'),
+      history7d: parseFixture('[data-fixture-history-7d]'),
+    };
+    const allowedSimulations = new Set(['fresh', 'stale', 'partial', 'empty', 'unavailable', 'incompatible', 'offline']);
+    const requested = new URLSearchParams(location.search).get('state');
+    const simulation = allowedSimulations.has(requested ?? '') ? requested as SimulationState : null;
+    let range: 'current' | '24h' | '7d' = 'current';
+    let loadedSnapshot: Envelope<NasSnapshotData> | undefined;
+    let loadedHistory: Envelope<NasHistoryData> | undefined;
+
+    const stateLabel = root.querySelector<HTMLElement>('[data-state-label]')!;
+    const generatedAt = root.querySelector<HTMLElement>('[data-generated-at]')!;
+    const message = root.querySelector<HTMLElement>('[data-stage-message]')!;
+    const svg = root.querySelector<SVGSVGElement>('[data-constellation-svg]')!;
+    const historyStrip = root.querySelector<HTMLElement>('[data-history-strip]')!;
+    const selected = root.querySelector<HTMLElement>('[data-selected-service]')!;
+
+    const stateCopy: Record<DataState, { label: string; title: string; body: string }> = {
+      loading: { label: 'LOADING', title: '正在读取公开快照', body: '正在建立只读数据视图。' },
+      fresh: { label: 'FRESH', title: '', body: '' },
+      stale: { label: 'STALE', title: '数据已过期', body: '继续显示最后一次成功快照，等待下一次采集。' },
+      partial: { label: 'PARTIAL', title: '部分数据源不可用', body: '当前星图只包含仍可确认的公开数据。' },
+      empty: { label: 'EMPTY', title: '没有公开服务节点', body: '数据接口正常，但当前快照没有可展示节点。' },
+      unavailable: { label: 'UNAVAILABLE', title: '快照暂不可用', body: '当前没有可返回的公开 NAS 快照。' },
+      incompatible: { label: 'INCOMPATIBLE', title: '数据版本不兼容', body: '当前页面无法读取此主版本的数据契约。' },
+      offline: { label: 'OFFLINE', title: '无法连接数据网关', body: '页面保留静态说明，但动态数据不可用。' },
+    };
+
+    const positions: Record<string, [number, number]> = {
+      storage: [500, 315], knowledge: [300, 205], automation: [690, 190], media: [265, 430],
+      network: [760, 365], development: [590, 485], cloud: [860, 145], other: [120, 310],
+    };
+
+    function percent(value: number | null) { return value === null ? '—' : `${Math.round(value * 100)}%`; }
+    function bytes(value: number | null) {
+      if (value === null) return '—';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let current = value; let unit = 0;
+      while (current >= 1024 && unit < units.length - 1) { current /= 1024; unit++; }
+      return `${current.toFixed(unit >= 3 ? 1 : 0)} ${units[unit]}`;
+    }
+    function duration(value: number | null) {
+      if (value === null) return '—';
+      const days = Math.floor(value / 86400);
+      const hours = Math.floor((value % 86400) / 3600);
+      return `${days}d ${hours}h`;
+    }
+    function setText(selector: string, value: string) { root!.querySelector<HTMLElement>(selector)!.textContent = value; }
+
+    function setState(state: DataState) {
+      root!.dataset.state = state;
+      stateLabel.textContent = stateCopy[state].label;
+      const showMessage = !['fresh', 'stale', 'partial'].includes(state);
+      message.hidden = !showMessage;
+      if (showMessage) message.innerHTML = `<strong>${stateCopy[state].title}</strong><p>${stateCopy[state].body}</p>`;
+    }
+
+    function renderMetrics(snapshot: Envelope<NasSnapshotData>) {
+      const { data } = snapshot;
+      setText('[data-system-label]', data.system.label);
+      setText('[data-cpu]', percent(data.metrics.cpuUsageRatio));
+      setText('[data-memory]', percent(data.metrics.memoryUsageRatio));
+      setText('[data-temperature]', data.metrics.temperatureCelsius === null ? '—' : `${data.metrics.temperatureCelsius.toFixed(1)}°C`);
+      setText('[data-storage]', `${percent(data.storage.usageRatio)} / ${bytes(data.storage.usedBytes)}`);
+      setText('[data-uptime]', duration(data.system.uptimeSeconds));
+      setText('[data-backup]', `${data.backup.lastResult.toUpperCase()} · ${data.backup.lastCompletedAt ? new Date(data.backup.lastCompletedAt).toLocaleString('zh-CN') : '—'}`);
+      generatedAt.textContent = `UPDATED ${new Date(snapshot.generatedAt).toLocaleString('zh-CN')}`;
+    }
+
+    function renderConstellation(services: NasService[]) {
+      svg.replaceChildren();
+      const namespace = 'http://www.w3.org/2000/svg';
+      services.forEach((service, index) => {
+        const base = positions[service.category] ?? positions.other;
+        const angle = index * 2.17;
+        const x = base[0] + Math.cos(angle) * (18 + (index % 3) * 12);
+        const y = base[1] + Math.sin(angle) * (18 + (index % 3) * 12);
+        const group = document.createElementNS(namespace, 'g');
+        group.setAttribute('class', `node node-${service.status} activity-${service.activityLevel}`);
+        group.setAttribute('tabindex', '0');
+        group.setAttribute('role', 'button');
+        group.setAttribute('aria-label', `${service.label}，${service.status}`);
+        group.innerHTML = `<circle class="node-halo" cx="${x}" cy="${y}" r="34"/><circle class="node-core" cx="${x}" cy="${y}" r="7"/><text x="${x + 15}" y="${y - 12}">${service.label}</text><text class="node-meta" x="${x + 15}" y="${y + 7}">${service.category.toUpperCase()} / ${service.status.toUpperCase()}</text>`;
+        const selectService = () => {
+          selected.innerHTML = `<span>SELECTED NODE / ${service.category.toUpperCase()}</span><strong>${service.label}</strong><p>${service.status.toUpperCase()} · 24H ${percent(service.availabilityRatio24h)} · ACTIVITY ${service.activityLevel.toUpperCase()}</p>`;
+        };
+        group.addEventListener('click', selectService);
+        group.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') selectService(); });
+        svg.append(group);
+      });
+    }
+
+    function renderHistory(history: Envelope<NasHistoryData>) {
+      historyStrip.replaceChildren();
+      const values = history.data.points.map((point) => point.cpuUsageRatioAvg ?? 0);
+      const max = Math.max(...values, 0.01);
+      history.data.points.forEach((point, index) => {
+        const bar = document.createElement('span');
+        bar.style.setProperty('--bar-height', `${Math.max(8, (values[index] / max) * 100)}%`);
+        bar.title = `${new Date(point.timestamp).toLocaleString('zh-CN')} · CPU ${percent(point.cpuUsageRatioAvg)}`;
+        historyStrip.append(bar);
+      });
+    }
+
+    async function load(selectedRange: '24h' | '7d') {
+      setState('loading');
+      const result = await loadNasData({
+        fixtureSnapshot: fixtures.snapshot,
+        fixtureHistory: selectedRange === '24h' ? fixtures.history24h : fixtures.history7d,
+        mode: root!.dataset.mode === 'gateway' ? 'gateway' : 'fixture',
+        range: selectedRange,
+        simulation,
+      });
+      setState(result.state);
+      loadedSnapshot = result.snapshot;
+      loadedHistory = result.history;
+      if (loadedSnapshot) {
+        renderMetrics(loadedSnapshot);
+        renderConstellation(loadedSnapshot.data.services);
+      } else {
+        svg.replaceChildren();
+      }
+      if (loadedHistory) renderHistory(loadedHistory);
+      else historyStrip.replaceChildren();
+    }
+
+    root.querySelectorAll<HTMLButtonElement>('[data-range]').forEach((button) => {
+      button.addEventListener('click', () => {
+        range = button.dataset.range as typeof range;
+        root!.querySelectorAll<HTMLButtonElement>('[data-range]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+        if (range !== 'current') load(range);
+        else if (loadedSnapshot) { renderConstellation(loadedSnapshot.data.services); if (loadedHistory) renderHistory(loadedHistory); }
+      });
+    });
+
+    load('24h');
+  }
+</script>
+
+<style>
+  .nas-constellation { border: 1px solid #2b3b42; background: #071014; }
+  .constellation-bar { align-items: center; border-bottom: 1px solid #2b3b42; display: flex; justify-content: space-between; padding: 0.8rem 1rem; }
+  .source-state, .range-control { align-items: center; display: flex; gap: 0.65rem; }
+  .source-state, .range-control button, .ledger-heading, .fixture-note, .selected-service span { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; }
+  .source-state > span:last-child { color: #758890; }
+  .state-dot { background: #78c2bd; border-radius: 50%; height: 6px; width: 6px; }
+  [data-state='stale'] .state-dot, [data-state='partial'] .state-dot { background: #c3a369; }
+  [data-state='unavailable'] .state-dot, [data-state='offline'] .state-dot, [data-state='incompatible'] .state-dot { background: #a66861; }
+  .range-control button { background: transparent; border: 1px solid #2b3b42; color: #879aa1; min-height: 32px; padding: 0.35rem 0.65rem; }
+  .range-control button[aria-pressed='true'] { border-color: #77aeb3; color: #d3e5e3; }
+  .constellation-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 0.32fr); min-height: 620px; }
+  .constellation-stage { min-height: 620px; overflow: hidden; position: relative; }
+  .constellation-stage svg { height: 100%; inset: 0; position: absolute; width: 100%; }
+  .stage-message { left: 50%; position: absolute; text-align: center; top: 50%; transform: translate(-50%, -50%); }
+  .stage-message[hidden] { display: none; }
+  .stage-message p { color: #82949a; }
+  .system-ledger { border-left: 1px solid #2b3b42; display: flex; flex-direction: column; padding: 1rem; }
+  .ledger-heading { display: grid; gap: 0.45rem; }
+  .ledger-heading span, .selected-service span { color: #74888f; }
+  .ledger-heading strong { font-size: 1rem; }
+  .metrics { margin: 2rem 0; }
+  .metrics div { align-items: center; border-top: 1px solid #213138; display: flex; justify-content: space-between; padding: 0.72rem 0; }
+  .metrics dt { color: #758990; font-family: var(--font-mono); font-size: 0.67rem; text-transform: uppercase; }
+  .metrics dd { font-family: var(--font-mono); font-size: 0.78rem; margin: 0; text-align: right; }
+  .selected-service { border-top: 1px solid #2b3b42; margin-top: auto; padding-top: 1rem; }
+  .selected-service strong { display: block; font-size: 1.2rem; margin: 0.7rem 0; }
+  .selected-service p { color: #90a0a4; font-size: 0.78rem; }
+  .history-strip { align-items: end; border-top: 1px solid #2b3b42; display: flex; gap: 4px; height: 92px; padding: 1rem; }
+  .history-strip span { background: #5c9298; flex: 1; height: var(--bar-height); max-width: 32px; min-height: 4px; opacity: 0.65; }
+  .fixture-note { color: #657980; margin: 0; padding: 0.7rem 1rem; }
+  :global(.node) { cursor: pointer; outline: none; }
+  :global(.node-halo) { fill: rgba(92, 166, 174, 0.08); stroke: rgba(118, 193, 197, 0.18); }
+  :global(.node-core) { fill: #78c2bd; }
+  :global(.node-degraded .node-core), :global(.node-maintenance .node-core) { fill: #c3a369; }
+  :global(.node-offline .node-core), :global(.node-unknown .node-core) { fill: #7f888b; }
+  :global(.node text) { fill: #d7e4e2; font-family: var(--font-mono); font-size: 13px; }
+  :global(.node .node-meta) { fill: #71868d; font-size: 9px; letter-spacing: 1px; }
+  :global(.node:focus .node-halo), :global(.node:hover .node-halo) { fill: rgba(99, 188, 195, 0.17); stroke: #79bec1; }
+  @media (max-width: 800px) { .constellation-body { grid-template-columns: 1fr; } .system-ledger { border-left: 0; border-top: 1px solid #2b3b42; } .constellation-stage { min-height: 480px; } }
+  @media (max-width: 560px) { .constellation-bar { align-items: flex-start; flex-direction: column; gap: 0.8rem; } .constellation-stage { min-height: 400px; } .fixture-note { overflow-wrap: anywhere; } }
+</style>
