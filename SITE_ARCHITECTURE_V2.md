@@ -277,6 +277,8 @@ NAS 可以承担：
 
 ### 11.3 Cloud / 公网
 
+正式 Blog 域名确定为 `blog.ayuegege26.xyz`。所有 canonical、Open Graph、RSS 与 sitemap 绝对地址统一使用 `http://blog.ayuegege26.xyz`。本站是个人 Blog，以直接访问和部署便利为优先；HTTPS 可在以后按需要增加，但不要求强制跳转，也不作为工程验收条件。
+
 未来公网部署可以将：
 
 - 静态页面放在 CDN / 静态托管。

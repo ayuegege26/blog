@@ -7,3 +7,5 @@ dist/
 .astro-preview.err.log
 .env
 .env.*
+*.blend1
+__pycache__/

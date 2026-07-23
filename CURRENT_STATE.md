@@ -2,9 +2,9 @@
 
 ## 当前版本
 
-当前发布版本为 `v0.2.0 — Lab Foundation`。
+当前预览版本为 `v0.2.2p — Visual Systems Preview`；`package.json` 使用标准预发布版本 `0.2.2-preview.0`。
 
-`v0.2.0` 在已经稳定的 Archive Object 主站之外，完成第一阶段动态 Lab：Temporal Field 证明浏览器高级生成视觉能力，NAS Constellation 证明周期真实数据、只读 Gateway 与动态前端可以在明确的隐私边界内共同运行。
+`v0.2.2p` 在已经稳定的 Archive Object 主站和动态 Lab 框架上，发布 VS–001 Archive Atlas，并开放 VS–002 Server World 的阶段性预览。后续内容评审确认 Temporal Field 只具备视觉原型价值，不足以作为独立博客内容，现已撤下公开入口；NAS Constellation 继续作为真实周期数据项目运行。
 
 ## 已完成能力
 
@@ -19,7 +19,8 @@
 ### Lab 平台
 
 - Lab 主导航入口、主站正文介绍入口、独立 Layout 和板块导航。
-- Visual Systems／Temporal Field：WebGL 生成视觉、Canvas 降级、暂停和密度控制。
+- Visual Systems：Temporal Field 渲染器转为未公开视觉能力原型；`VS–001 Archive Atlas` 已接入七个真实公开 Archive Objects，按发布日期、领域、类型、状态、阅读长度和显式关联生成地图。
+- `VS–002 Server World` 预览：正式 GLB 资产、材质与光照、自由飞行、可逆 proximity 状态、九个遮挡感知点击节点和 reduced-motion 路径；节点正式内容与 Gate 5 仍待完成。
 - NAS Observatory／NAS Constellation：当前、24 小时、7 天视图和八种数据状态。
 - NAS schema `1.0`、前端运行时验证、脱敏 fixtures 与 QA 状态模拟。
 - Python Collectors、只读 Data Gateway、Nginx 同源代理和每小时采集。
@@ -40,8 +41,8 @@
 - 不提供 NAS 控制、服务端写操作、账号系统或私人项目入口。
 - NAS 仅公开聚合指标和人工确认的服务别名。
 - 24 小时和 7 天历史需要随部署时间逐步积累。
-- 备份状态在接入可信备份来源前保持 `unknown`。
-- Blog 公网正式域名和 HTTPS 入口不属于 v0.2.0。
+- 备份状态来自官方 Backup Service 的只读操作记录；当前尚无备份操作，所以真实结果为 `unknown`。
+- Blog 正式入口为 `http://blog.ayuegege26.xyz`；个人站以直接访问为优先，HTTPS 不作为发布门槛。
 - 服务依赖连线仍为可选能力；没有明确、可验证关系时不显示。
 
 ## 验证基线
@@ -53,4 +54,8 @@
 
 ## 下一阶段
 
-下一阶段不默认继续增加 Lab 项目。优先事项是积累并验证历史数据、接入可信备份状态、完成真实数据桌面与移动视觉 QA、完善公网 HTTPS 部署方案，并维护 v0.2.0 工程文件的一致性。
+下一阶段优先完成 VS–002 S5 节点内容、浏览器会话韧性与 Gate 5 发布候选验收；运行可靠性工作继续等待真实历史时间窗口。具体范围见 `NEXT_PHASE_PLAN.md` 与 `VS002_PRODUCTION_PLAN.md`。
+
+备份接入只公开最近完成时间和聚合结果，不读取或公开任务名称、备份路径、存储目标、账号、凭证或日志内容。
+
+2026-07-16 Archive Atlas 的内容核查和第二阶段真实资料接入已完成；OBS-X、draft 与 future 占位内容不会进入地图。OpenPaw 只作为事实核查和候选素材来源，正式公开资料仍以 MDX 与作者确认为准。NAS 运行验收仍需等待真实时间的 24 小时／7 天连续性。

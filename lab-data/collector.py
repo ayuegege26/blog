@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import socket
 import tempfile
 import time
@@ -20,6 +21,7 @@ HISTORY_STORE = ROOT / "history-hourly.json"
 SERVICES_FILE = ROOT / "services.json"
 SCHEMA_VERSION = "1.0"
 STALE_AFTER_SECONDS = 7200
+BACKUP_DATABASE = Path("/usr/trim/var/backup_service/basic_backup.db3")
 
 
 def utc_now() -> datetime:
@@ -122,6 +124,57 @@ def uptime_seconds() -> int | None:
         return None
 
 
+def backup_timestamp(value: Any) -> str | None:
+    """Convert the backup service's Unix timestamp without leaking task data."""
+    if not isinstance(value, (int, float)) or value <= 0:
+        return None
+    timestamp = float(value)
+    while timestamp > 10_000_000_000:
+        timestamp /= 1000
+    try:
+        return iso(datetime.fromtimestamp(timestamp, timezone.utc))
+    except (OSError, OverflowError, ValueError):
+        return None
+
+
+def backup_status() -> dict[str, str | None]:
+    """Read the latest terminal result from the NAS vendor's backup service.
+
+    Only aggregate operation fields are selected. Task names, source and target
+    paths, storage configuration, credentials, and log messages are never read.
+    """
+    fallback = {"lastCompletedAt": None, "lastResult": "unknown"}
+    if not BACKUP_DATABASE.is_file():
+        return fallback
+    try:
+        uri = f"file:{BACKUP_DATABASE.as_posix()}?mode=ro"
+        with sqlite3.connect(uri, uri=True, timeout=1) as connection:
+            row = connection.execute(
+                """
+                SELECT finished_time, status, completed_count, actual_count
+                FROM operations
+                WHERE finished_time > 0 AND status IN (3, 4)
+                ORDER BY finished_time DESC
+                LIMIT 1
+                """
+            ).fetchone()
+    except (OSError, sqlite3.Error):
+        return fallback
+    if not row:
+        return fallback
+    finished_at, status, completed_count, actual_count = row
+    completed_at = backup_timestamp(finished_at)
+    if completed_at is None:
+        return fallback
+    if status == 3:
+        result = "success"
+    elif status == 4 and any(isinstance(value, int) and value > 0 for value in (completed_count, actual_count)):
+        result = "partial"
+    else:
+        result = "failed"
+    return {"lastCompletedAt": completed_at, "lastResult": result}
+
+
 def tcp_status(host: str, port: int) -> str:
     try:
         with socket.create_connection((host, port), timeout=1):
@@ -200,7 +253,7 @@ def main() -> None:
         "system": {"id": "ayue-nas", "label": "Ayue NAS", "status": "online", "uptimeSeconds": uptime_seconds()},
         "metrics": metrics,
         "storage": storage_data,
-        "backup": {"lastCompletedAt": None, "lastResult": "unknown"},
+        "backup": backup_status(),
         "services": service_data,
     }
     point = {
@@ -223,9 +276,10 @@ def main() -> None:
     atomic_json(NAS_ROOT / "history-24h", envelope(now, {"range": "24h", "resolutionSeconds": 3600, "points": history24}))
     atomic_json(NAS_ROOT / "history-7d", envelope(now, {"range": "7d", "resolutionSeconds": 21600, "points": history7}))
     atomic_json(OUTPUT_ROOT / "manifest", envelope(now, {
-        "labVersion": "0.1.0",
+        "labVersion": "0.2.2-preview.0",
         "projects": [
-            {"id": "temporal-field", "section": "visual-systems", "dataMode": "client-only", "status": "available"},
+            {"id": "archive-atlas", "section": "visual-systems", "dataMode": "build-time-mdx", "status": "available"},
+            {"id": "vs002-server-world", "section": "visual-systems", "dataMode": "client-3d", "status": "preview"},
             {"id": "nas-constellation", "section": "nas-observatory", "dataMode": "periodic-snapshot", "status": "available"},
         ],
         "nasCapabilities": {"snapshot": True, "history24h": True, "history7d": True, "realtime": False},

@@ -34,7 +34,7 @@ const dataMode = import.meta.env.PUBLIC_LAB_DATA_MODE === 'gateway' ? 'gateway' 
       <svg viewBox="0 0 1000 620" role="img" aria-label="NAS 服务星图" data-constellation-svg></svg>
       <div class="stage-message" data-stage-message>
         <strong>正在读取公开快照</strong>
-        <p>数据仅来自脱敏 fixture；尚未连接真实 NAS。</p>
+        <p>{dataMode === 'gateway' ? '正在连接匿名只读 NAS Data Gateway。' : '数据来自脱敏 fixture。'}</p>
       </div>
     </div>
 
@@ -60,7 +60,7 @@ const dataMode = import.meta.env.PUBLIC_LAB_DATA_MODE === 'gateway' ? 'gateway' 
   </div>
 
   <div class="history-strip" data-history-strip aria-label="聚合历史"></div>
-  <p class="fixture-note">FIXTURE MODE / QUERY `?state=fresh|stale|partial|empty|unavailable|incompatible|offline`</p>
+  <p class="fixture-note">{dataMode === 'gateway' ? 'GATEWAY MODE / ANONYMOUS READ ONLY / HOURLY SNAPSHOT' : 'FIXTURE MODE / QUERY `?state=fresh|stale|partial|empty|unavailable|incompatible|offline`'}</p>
 </section>
 
 <script>

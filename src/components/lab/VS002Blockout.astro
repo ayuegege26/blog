@@ -1,0 +1,1101 @@
+---
+import { VS002_FORMAL_CLICK_NODES as clickNodeDefinitions } from '@lib/vs002-click-nodes';
+
+interface Props {
+  assetUrl?: string;
+  stageLabel?: string;
+  pageTitle?: string;
+  descriptor?: string;
+  helpLabel?: string;
+  gateLabel?: string;
+  scopeNote?: string;
+  visualMode?: 'blockout' | 'material-lighting';
+  interactionMode?: 'none' | 'proximity' | 'proximity-click';
+  presentation?: 'pass' | 'formal';
+}
+
+const {
+  assetUrl = '/assets/vs002/vs002-s1-world-blockout.glb',
+  stageLabel = 'S1.5 / STRUCTURE COMPLETION',
+  pageTitle = 'Server World / Structure Pass',
+  descriptor = '主環巨構 · 兩個垂直支系 · 一組高層懸浮平台',
+  helpLabel = 'S1.5 / NO DETAIL / NO INTERACTION',
+  gateLabel = 'GATE 1.5 / STRUCTURAL CONTINUITY',
+  scopeNote = '此頁只驗證布局、比例、導航層和飛行邊界。',
+  visualMode = 'blockout',
+  interactionMode = 'none',
+  presentation = 'pass',
+} = Astro.props;
+---
+
+<section class:list={['vs002-blockout', presentation === 'formal' && 'vs002-formal']} data-vs002-blockout data-asset-url={assetUrl} data-stage-label={stageLabel} data-visual-mode={visualMode} data-interaction-mode={interactionMode} data-presentation={presentation} aria-labelledby="vs002-blockout-title" aria-busy="true">
+  <div class="vs002-entry-layer" data-entry-layer aria-live="polite">
+    <div class="vs002-entry-mark">VS–002 / SERVER WORLD</div>
+    <div class="vs002-entry-copy">
+      <p data-entry-state>INITIALIZING WORLD SYSTEMS</p>
+      <h2>Entering Server World</h2>
+      <span>Preparing the spatial layer for exploration.</span>
+    </div>
+    <div class="vs002-entry-progress" role="progressbar" aria-label="Loading Server World" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <i data-entry-progress></i>
+    </div>
+    <div class="vs002-entry-meta">
+      <span data-entry-percent>00%</span>
+      <span>WEBGPU / GLB / SCENE</span>
+    </div>
+  </div>
+  <canvas data-blockout-canvas tabindex="0" aria-label={`VS–002 ${stageLabel} 預覽`}></canvas>
+  <header class="blockout-hud">
+    <div>
+      <p>{stageLabel}</p>
+      <h1 id="vs002-blockout-title">{pageTitle}</h1>
+      <span>{descriptor}</span>
+    </div>
+    <div class="blockout-state" aria-live="polite">
+      <a class="blockout-return" href="/lab/visual-systems">{presentation === 'formal' ? 'RETURN TO VISUAL SYSTEMS' : 'EXIT / VISUAL SYSTEMS'}</a>
+      <strong data-world-status hidden={presentation === 'formal'}>LOADING ASSET</strong>
+      {interactionMode !== 'none' && <strong data-proximity-status hidden={presentation === 'formal'}>PROXIMITY / STANDBY</strong>}
+      {interactionMode === 'proximity-click' && <strong data-click-status hidden={presentation === 'formal'}>CLICK / STANDBY</strong>}
+    </div>
+  </header>
+  {presentation === 'pass' && (
+    <div class="blockout-help">
+      <span><b>W A S D</b> 相對相機移動</span>
+      <span><b>SHIFT / C</b> 上下飛行</span>
+      <span><b>DRAG</b> 相機</span>
+      {interactionMode === 'proximity-click' && <span><b>CLICK</b> 粒子節點</span>}
+      <span>{helpLabel}</span>
+    </div>
+  )}
+  {interactionMode === 'proximity-click' && (
+    <>
+      <div class="click-node-controls" aria-label="可用的信息节点">
+        {clickNodeDefinitions.map((node) => (
+          <button
+            type="button"
+            data-click-control={node.id}
+            data-click-role={node.role ?? 'standard'}
+            aria-controls="vs002-click-panel"
+            aria-expanded="false"
+            aria-label={`${node.number} ${node.region}`}
+            disabled
+          >
+            <span aria-hidden="true">{node.number}</span>
+          </button>
+        ))}
+      </div>
+      <aside id="vs002-click-panel" class="blockout-info" data-click-panel aria-labelledby="vs002-click-title" aria-live="polite" hidden>
+        <p data-click-label>NODE 00 / PLACEHOLDER</p>
+        <h2 id="vs002-click-title" data-click-title>Content Placeholder</h2>
+        <strong data-click-region>REGION / UNASSIGNED</strong>
+        <p data-click-body>此处保留给正式节点信息。</p>
+        <a data-click-action hidden href="/lab/visual-systems"></a>
+        <small>CLICK ANYWHERE 或按 ESC 收起信息</small>
+      </aside>
+    </>
+  )}
+  {presentation === 'pass' && (
+    <aside class="blockout-note">
+      <p>{gateLabel}</p>
+      <strong>{scopeNote}</strong>
+    </aside>
+  )}
+</section>
+
+<script>
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  import { WebGPURenderer } from 'three/webgpu';
+  import { createVS002SurfaceMaps, createVS002SurfaceMaterial } from '@lib/vs002-surface-maps';
+  import {
+    VS002ProximityRegistry,
+    VS002_FORMAL_PROXIMITY_NODES,
+    type VS002ProximitySnapshot,
+  } from '@lib/vs002-proximity';
+  import {
+    VS002_FORMAL_CLICK_NODES,
+    type VS002ClickNodeConfig,
+  } from '@lib/vs002-click-nodes';
+
+  const root = document.querySelector<HTMLElement>('[data-vs002-blockout]');
+  if (root) {
+    const assetUrl = root.dataset.assetUrl ?? '/assets/vs002/vs002-s1-world-blockout.glb';
+    const stageLabel = root.dataset.stageLabel ?? 'S1.5 / STRUCTURE COMPLETION';
+    const materialLighting = root.dataset.visualMode === 'material-lighting';
+    const proximityEnabled = root.dataset.interactionMode !== 'none';
+    const clickEnabled = root.dataset.interactionMode === 'proximity-click';
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-blockout-canvas]')!;
+    const entryLayer = root.querySelector<HTMLElement>('[data-entry-layer]');
+    const entryState = root.querySelector<HTMLElement>('[data-entry-state]');
+    const entryProgress = root.querySelector<HTMLElement>('[data-entry-progress]');
+    const entryPercent = root.querySelector<HTMLElement>('[data-entry-percent]');
+    const entryBar = root.querySelector<HTMLElement>('.vs002-entry-progress');
+    const status = root.querySelector<HTMLElement>('[data-world-status]')!;
+    const proximityStatus = root.querySelector<HTMLElement>('[data-proximity-status]');
+    const clickStatus = root.querySelector<HTMLElement>('[data-click-status]');
+    const clickPanel = root.querySelector<HTMLElement>('[data-click-panel]');
+    const clickLabel = root.querySelector<HTMLElement>('[data-click-label]');
+    const clickTitle = root.querySelector<HTMLElement>('[data-click-title]');
+    const clickRegion = root.querySelector<HTMLElement>('[data-click-region]');
+    const clickBody = root.querySelector<HTMLElement>('[data-click-body]');
+    const clickAction = root.querySelector<HTMLAnchorElement>('[data-click-action]');
+    const clickControls = new Map(
+      [...root.querySelectorAll<HTMLButtonElement>('[data-click-control]')]
+        .map((control) => [control.dataset.clickControl ?? '', control] as const),
+    );
+    const scene = new THREE.Scene();
+    scene.background = materialLighting ? null : new THREE.Color('#102a46');
+    scene.fog = new THREE.FogExp2(materialLighting ? '#496e7b' : '#214154', materialLighting ? 0.0048 : 0.009);
+    const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 240);
+    const world = new THREE.Group();
+    scene.add(world);
+    const sceneOccluders: THREE.Mesh[] = [];
+
+    const skySunPosition = new THREE.Vector3(80, 5, 80);
+
+    const skyGeometry = new THREE.SphereGeometry(180, 48, 24);
+    const skyPosition = skyGeometry.getAttribute('position');
+    const skyColors = new Float32Array(skyPosition.count * 3);
+    const top = new THREE.Color(materialLighting ? '#102d46' : '#12345a');
+    const horizon = new THREE.Color(materialLighting ? '#6f9ba6' : '#79aeba');
+    const bottom = new THREE.Color(materialLighting ? '#294551' : '#132532');
+    for (let i = 0; i < skyPosition.count; i += 1) {
+      const height = skyPosition.getY(i) / 180;
+      const color = height >= 0
+        ? horizon.clone().lerp(top, THREE.MathUtils.smoothstep(height, 0.05, 0.92))
+        : bottom.clone().lerp(horizon, THREE.MathUtils.smoothstep(height, -0.85, 0.08));
+      skyColors[i * 3] = color.r;
+      skyColors[i * 3 + 1] = color.g;
+      skyColors[i * 3 + 2] = color.b;
+    }
+    skyGeometry.setAttribute('color', new THREE.Float32BufferAttribute(skyColors, 3));
+    const skyFallback = new THREE.Mesh(skyGeometry, new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      side: THREE.BackSide,
+      depthWrite: false,
+      depthTest: false,
+      fog: false,
+      toneMapped: false,
+    }));
+    skyFallback.renderOrder = -1000;
+    skyFallback.frustumCulled = false;
+    scene.add(skyFallback);
+
+    const skyLight = new THREE.HemisphereLight(
+      materialLighting ? 0xb7d4e0 : 0x9bbfd9,
+      materialLighting ? 0x29414d : 0x203442,
+      materialLighting ? 2.35 : 2.45,
+    );
+    scene.add(skyLight);
+    scene.add(new THREE.AmbientLight(materialLighting ? 0x58798b : 0x4d718b, materialLighting ? 0.38 : 0.32));
+    const sun = new THREE.DirectionalLight(materialLighting ? 0xaac6d7 : 0x8eabc3, materialLighting ? 0.52 : 1.05);
+    sun.position.copy(skySunPosition);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.left = -88;
+    sun.shadow.camera.right = 88;
+    sun.shadow.camera.top = 88;
+    sun.shadow.camera.bottom = -88;
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 230;
+    sun.shadow.bias = -0.00035;
+    scene.add(sun);
+    if (materialLighting) {
+      const horizonFill = new THREE.DirectionalLight(0x79aab8, 0.18);
+      horizonFill.position.set(54, 24, -36);
+      scene.add(horizonFill);
+    }
+
+    const materialTokens = {
+      ground: { color: 0x294653, metalness: 0.08, roughness: 0.94 },
+      hero: { color: 0x6f8994, metalness: 0.46, roughness: 0.54 },
+      ring: { color: 0x526f7a, metalness: 0.54, roughness: 0.50 },
+      well: { color: 0x587681, metalness: 0.38, roughness: 0.62 },
+      bridge: { color: 0x466a75, metalness: 0.60, roughness: 0.44 },
+      floating: { color: 0x607985, metalness: 0.52, roughness: 0.51 },
+      support: { color: 0x405b66, metalness: 0.42, roughness: 0.60 },
+      rib: { color: 0x2d4a56, metalness: 0.34, roughness: 0.66 },
+      inset: { color: 0x174951, metalness: 0.50, roughness: 0.35, emissive: 0x38a7aa, emissiveIntensity: 0.68 },
+      band: { color: 0x1b4c55, metalness: 0.58, roughness: 0.34, emissive: 0x2f8a92, emissiveIntensity: 0.42 },
+    } as const;
+
+    type MaterialRole = keyof typeof materialTokens;
+    const runtimeMaterials = new Map<MaterialRole, THREE.MeshStandardMaterial>();
+    const surfaceMaterials = new Map<MaterialRole, THREE.MeshStandardMaterial>();
+    const surfaceMaps = materialLighting ? createVS002SurfaceMaps() : null;
+    const materialFor = (role: MaterialRole) => {
+      const existing = runtimeMaterials.get(role);
+      if (existing) return existing;
+      const token = materialTokens[role];
+      const runtimeMaterial = new THREE.MeshStandardMaterial({
+        color: token.color,
+        metalness: token.metalness,
+        roughness: token.roughness,
+        emissive: 'emissive' in token ? token.emissive : 0x000000,
+        emissiveIntensity: 'emissiveIntensity' in token ? token.emissiveIntensity : 0,
+      });
+      runtimeMaterial.name = `VS002_${role.toUpperCase()}`;
+      runtimeMaterials.set(role, runtimeMaterial);
+      return runtimeMaterial;
+    };
+
+    const surfaceMaterialFor = (role: MaterialRole) => {
+      const existing = surfaceMaterials.get(role);
+      if (existing) return existing;
+      if (!surfaceMaps) return materialFor(role);
+      const material = createVS002SurfaceMaterial(
+        materialFor(role),
+        surfaceMaps,
+        `VS002_${role.toUpperCase()}_SURFACE`,
+      );
+      surfaceMaterials.set(role, material);
+      return material;
+    };
+
+    const receivesSurfaceLanguage = (objectName: string) =>
+      objectName === 'MAIN_SERVER_CORE' || objectName === 'S2_CORE_DOCK_DETAIL';
+
+    const roleFor = (objectName: string, materialName: string): MaterialRole => {
+      if (materialName.includes('CyanInset')) return 'inset';
+      if (materialName.includes('CyanBand')) return 'band';
+      if (materialName.includes('StructuralRib')) return 'rib';
+      if (objectName.includes('MAP_EXTERNAL_SURFACE') || materialName.includes('S1_Ground')) return 'ground';
+      if (objectName.includes('MAIN_SERVER') || objectName.includes('CORE_') || objectName.includes('S2_CORE')) return 'hero';
+      if (objectName.includes('MAIN_RING') || objectName.includes('S2_MAIN_RING') || objectName.includes('S2_UPPER_RING')) return 'ring';
+      if (objectName.includes('VERTICAL_WELL') || objectName.includes('S2_WELL')) return 'well';
+      if (objectName.includes('FLOATING_BRIDGE') || objectName.includes('BRIDGE_') || objectName.includes('S2_BRIDGE')) return 'bridge';
+      if (objectName.includes('FLOATING_GROUP') || objectName.includes('S2_FLOAT')) return 'floating';
+      return 'support';
+    };
+
+    type ControlledMaterial = {
+      zoneId: string;
+      role: MaterialRole;
+      material: THREE.MeshStandardMaterial;
+      baseEmissive: THREE.Color;
+      baseEmissiveIntensity: number;
+      wakeDelay: number;
+    };
+
+    const controlledMaterials: ControlledMaterial[] = [];
+    const proximityRegistry = new VS002ProximityRegistry(VS002_FORMAL_PROXIMITY_NODES);
+    let proximitySnapshot: VS002ProximitySnapshot | null = null;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const proximityLight = new THREE.PointLight(0x55d8d4, 0, 12, 2);
+    proximityLight.name = 'VS002_PROXIMITY_FOCUS_LIGHT';
+    scene.add(proximityLight);
+
+    const interactionProfiles = {
+      core: { color: new THREE.Color(0x42aaa9), light: 0.09, phase: 0.1 },
+      ring: { color: new THREE.Color(0x3f9fa4), light: 0.07, phase: 1.1 },
+      well: { color: new THREE.Color(0x4baaa6), light: 0.07, phase: 2.0 },
+      bridge: { color: new THREE.Color(0x48a4a7), light: 0.06, phase: 2.8 },
+      floating: { color: new THREE.Color(0x50aaa5), light: 0.08, phase: 3.6 },
+      probe: { color: new THREE.Color(0x55b4ae), light: 0.07, phase: 0 },
+    } as const;
+
+    const roleEmissiveBoost: Record<MaterialRole, number> = {
+      ground: 0,
+      hero: 0,
+      ring: 0,
+      well: 0,
+      bridge: 0,
+      floating: 0,
+      support: 0,
+      rib: 0.025,
+      inset: 0.20,
+      band: 0.14,
+    };
+
+    const reactiveRoles = new Set<MaterialRole>(['band', 'inset', 'rib']);
+
+    const zoneForObject = (objectName: string) => {
+      for (const label of ['A', 'B', 'C']) {
+        if (
+          objectName === `FLOATING_BRIDGE_${label}`
+          || objectName.startsWith(`BRIDGE_${label}_`)
+          || objectName.startsWith(`S2_BRIDGE_${label}_`)
+        ) return `bridge-${label.toLowerCase()}`;
+      }
+      if (objectName.startsWith('VERTICAL_WELL_A') || objectName.startsWith('S2_WELL_A')) return 'well-a';
+      if (objectName.startsWith('VERTICAL_WELL_B') || objectName.startsWith('S2_WELL_B')) return 'well-b';
+      if (objectName.startsWith('FLOATING_GROUP') || objectName.startsWith('S2_FLOAT')) return 'floating-group';
+      if (
+        objectName === 'MAIN_RING_UPPER_TIER'
+        || objectName.startsWith('MAIN_RING_TIER_STRUT')
+        || objectName.startsWith('S2_UPPER_RING')
+      ) return 'upper-ring';
+      if (
+        objectName === 'MAIN_RING_CONTINUOUS'
+        || objectName === 'MAIN_RING_FOUNDATION'
+        || objectName.startsWith('MAIN_RING_BASE_PYLON')
+        || objectName.startsWith('S2_MAIN_RING')
+      ) return 'main-ring';
+      if (
+        objectName.startsWith('MAIN_SERVER')
+        || objectName.startsWith('CORE_')
+        || objectName.startsWith('S2_CORE')
+      ) return 'core';
+      return null;
+    };
+
+    const controlledMaterialFor = (
+      zoneId: string,
+      role: MaterialRole,
+      source: THREE.MeshStandardMaterial,
+      objectName: string,
+    ) => {
+      const material = source.clone();
+      material.name = `${source.name}_${objectName}_WAKE`;
+      const suffix = Number.parseInt(objectName.match(/_(\d{2})$/)?.[1] ?? '', 10);
+      const semanticDelay = objectName.includes('LOW')
+        ? 0.06
+        : objectName.includes('HIGH')
+          ? 0.26
+          : Number.isFinite(suffix)
+            ? Math.min(0.48, 0.08 + suffix * 0.065)
+            : 0.14;
+      const controlled = {
+        zoneId,
+        role,
+        material,
+        baseEmissive: source.emissive.clone(),
+        baseEmissiveIntensity: source.emissiveIntensity,
+        wakeDelay: semanticDelay,
+      };
+      controlledMaterials.push(controlled);
+      return material;
+    };
+
+    const applyMaterialLighting = (model: THREE.Object3D) => {
+      model.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        const source = Array.isArray(object.material) ? object.material[0] : object.material;
+        const role = roleFor(object.name, source?.name ?? '');
+        const baseMaterial = receivesSurfaceLanguage(object.name)
+          ? surfaceMaterialFor(role)
+          : materialFor(role);
+        const zoneId = proximityEnabled ? zoneForObject(object.name) : null;
+        object.material = zoneId && reactiveRoles.has(role)
+          ? controlledMaterialFor(zoneId, role, baseMaterial, object.name)
+          : baseMaterial;
+        object.castShadow = !object.name.includes('MAP_EXTERNAL_SURFACE');
+        object.receiveShadow = true;
+      });
+    };
+
+    const focusAnchor = new THREE.Vector3();
+    const updateProximity = (delta: number, elapsed: number) => {
+      if (!proximityEnabled) {
+        proximitySnapshot = null;
+        return null;
+      }
+      const snapshot = proximityRegistry.update(position, delta);
+      proximitySnapshot = snapshot;
+      const statesById = new Map(snapshot.states.map((state) => [state.config.id, state]));
+
+      for (const controlled of controlledMaterials) {
+        const state = statesById.get(controlled.zoneId);
+        if (!state) continue;
+        const profile = interactionProfiles[state.config.profile];
+        const pulse = reducedMotion
+          ? 0
+          : (Math.sin(elapsed * 1.1 + profile.phase + controlled.wakeDelay * 3) * 0.5 + 0.5) * 0.02;
+        const localActivation = THREE.MathUtils.smoothstep(
+          state.activation,
+          controlled.wakeDelay,
+          Math.min(1, controlled.wakeDelay + 0.42),
+        );
+        const effect = localActivation * (0.965 + pulse);
+        const emissiveMix = controlled.role === 'rib' ? 0.035 : 0.07;
+        controlled.material.emissive
+          .copy(controlled.baseEmissive)
+          .lerp(profile.color, Math.min(1, effect * emissiveMix));
+        controlled.material.emissiveIntensity = controlled.baseEmissiveIntensity
+          + effect * roleEmissiveBoost[controlled.role];
+      }
+
+      const focus = snapshot.focus;
+      if (focus) {
+        const profile = interactionProfiles[focus.config.profile];
+        focusAnchor.fromArray(focus.config.anchor);
+        proximityLight.position.lerp(focusAnchor, 1 - Math.exp(-8 * delta));
+        proximityLight.color.copy(profile.color);
+        proximityLight.intensity = THREE.MathUtils.damp(
+          proximityLight.intensity,
+          profile.light * focus.activation,
+          5,
+          delta,
+        );
+        proximityStatus && (proximityStatus.textContent = `PROXIMITY / ${focus.config.label} / ACTIVE`);
+      } else {
+        proximityLight.intensity = THREE.MathUtils.damp(proximityLight.intensity, 0, 4, delta);
+        proximityStatus && (proximityStatus.textContent = 'PROXIMITY / STANDBY');
+      }
+      return snapshot;
+    };
+
+    type ClickNodeVisual = {
+      config: VS002ClickNodeConfig;
+      group: THREE.Group;
+      idleCore: THREE.Mesh<THREE.IcosahedronGeometry, THREE.MeshBasicMaterial>;
+      core: THREE.Mesh<THREE.IcosahedronGeometry, THREE.MeshStandardMaterial>;
+      halo: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+      orbitA: THREE.Mesh<THREE.TorusGeometry, THREE.MeshBasicMaterial>;
+      orbitB: THREE.Mesh<THREE.TorusGeometry, THREE.MeshBasicMaterial>;
+      field: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+      particles: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial>;
+      hitTarget: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+      light: THREE.PointLight;
+      control: HTMLButtonElement | null;
+      active: boolean;
+      visibleToCamera: boolean;
+      activation: number;
+      distance: number;
+    };
+
+    const clickRaycaster = new THREE.Raycaster();
+    const occlusionRaycaster = new THREE.Raycaster();
+    const clickPointer = new THREE.Vector2();
+    const clickNodePoint = new THREE.Vector3();
+    const clickNodeViewPoint = new THREE.Vector3();
+    const clickNodeDirection = new THREE.Vector3();
+    const clickNodeVisuals: ClickNodeVisual[] = [];
+    let selectedClickId: string | null = null;
+
+    const isOccludedFromCamera = (point: THREE.Vector3, clearance = 1.25) => {
+      clickNodeDirection.subVectors(point, camera.position);
+      const distanceToPoint = clickNodeDirection.length();
+      if (distanceToPoint <= clearance || sceneOccluders.length === 0) return false;
+      clickNodeDirection.multiplyScalar(1 / distanceToPoint);
+      occlusionRaycaster.near = 0.05;
+      occlusionRaycaster.far = Math.max(0.05, distanceToPoint - clearance);
+      occlusionRaycaster.set(camera.position, clickNodeDirection);
+      return occlusionRaycaster.intersectObjects(sceneOccluders, false).length > 0;
+    };
+
+    const createClickNode = (config: VS002ClickNodeConfig) => {
+      const group = new THREE.Group();
+      group.name = `VS002_CLICK_${config.number}`;
+      group.position.fromArray(config.position);
+      group.visible = true;
+      const isExitNode = config.role === 'exit';
+      const nodeColors = isExitNode
+        ? {
+            idle: 0xb28b43,
+            core: 0xffd47a,
+            emissive: 0xb7772d,
+            halo: 0xc18f3f,
+            orbit: 0xe4b45d,
+            field: 0x8f6a32,
+            particles: 0xffd68a,
+            light: 0xd29b42,
+          }
+        : {
+            idle: 0x8aaac2,
+            core: 0x9eb8e1,
+            emissive: 0x526f9b,
+            halo: 0x789acb,
+            orbit: 0x8baddf,
+            field: 0x46648f,
+            particles: 0xb9cff0,
+            light: 0x7799cc,
+          };
+
+      const idleCore = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.21, 1),
+        new THREE.MeshBasicMaterial({
+          color: nodeColors.idle,
+          transparent: true,
+          opacity: 0.34,
+          blending: THREE.AdditiveBlending,
+          depthTest: true,
+          depthWrite: false,
+          toneMapped: false,
+        }),
+      );
+      idleCore.name = `VS002_CLICK_IDLE_${config.number}`;
+
+      const core = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.42, 1),
+        new THREE.MeshStandardMaterial({
+          color: nodeColors.core,
+          emissive: nodeColors.emissive,
+          emissiveIntensity: 0.32,
+          metalness: 0.34,
+          roughness: 0.22,
+          transparent: true,
+          opacity: 0.04,
+          depthWrite: false,
+        }),
+      );
+      const halo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.94, 12, 8),
+        new THREE.MeshBasicMaterial({
+          color: nodeColors.halo,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }),
+      );
+      const orbitMaterial = () => new THREE.MeshBasicMaterial({
+        color: nodeColors.orbit,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const orbitA = new THREE.Mesh(new THREE.TorusGeometry(1.45, 0.035, 6, 32), orbitMaterial());
+      const orbitB = new THREE.Mesh(new THREE.TorusGeometry(1.18, 0.028, 6, 28), orbitMaterial());
+      orbitA.rotation.x = Math.PI / 2;
+      orbitB.rotation.set(Math.PI / 2.7, 0.35, 0);
+      const field = new THREE.Mesh(
+        new THREE.SphereGeometry(1.58, 16, 10),
+        new THREE.MeshBasicMaterial({
+          color: nodeColors.field,
+          transparent: true,
+          opacity: 0,
+          wireframe: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }),
+      );
+      const particlePositions = new Float32Array(32 * 3);
+      for (let index = 0; index < 32; index += 1) {
+        const angle = index * 2.39996;
+        const radius = 0.46 + (index % 6) * 0.055;
+        particlePositions[index * 3] = Math.cos(angle) * radius;
+        particlePositions[index * 3 + 1] = ((index % 9) - 4) * 0.11;
+        particlePositions[index * 3 + 2] = Math.sin(angle) * radius;
+      }
+      const particleGeometry = new THREE.BufferGeometry();
+      particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      const particles = new THREE.Points(
+        particleGeometry,
+        new THREE.PointsMaterial({
+          color: nodeColors.particles,
+          size: 0.065,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }),
+      );
+      const hitTarget = new THREE.Mesh(
+        new THREE.SphereGeometry(1.85, 12, 10),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+      );
+      hitTarget.name = `VS002_CLICK_HIT_${config.number}`;
+      hitTarget.userData.clickNodeId = config.id;
+      hitTarget.visible = false;
+      const light = new THREE.PointLight(nodeColors.light, 0.16, 7, 2);
+
+      group.add(idleCore, core, halo, orbitA, orbitB, field, particles, hitTarget, light);
+      world.add(group);
+
+      clickNodeVisuals.push({
+        config,
+        group,
+        idleCore,
+        core,
+        halo,
+        orbitA,
+        orbitB,
+        field,
+        particles,
+        hitTarget,
+        light,
+        control: clickControls.get(config.id) ?? null,
+        active: false,
+        visibleToCamera: false,
+        activation: 0,
+        distance: Number.POSITIVE_INFINITY,
+      });
+    };
+
+    if (clickEnabled) VS002_FORMAL_CLICK_NODES.forEach(createClickNode);
+
+    const setSelectedClickNode = (node: ClickNodeVisual | null) => {
+      selectedClickId = node?.config.id ?? null;
+      clickNodeVisuals.forEach((candidate) => {
+        candidate.control?.setAttribute('aria-expanded', String(candidate.config.id === selectedClickId));
+      });
+      if (!clickPanel || !clickLabel || !clickTitle || !clickRegion || !clickBody) return;
+      clickPanel.hidden = !node;
+      if (!node) {
+        if (clickAction) clickAction.hidden = true;
+        clickStatus && (clickStatus.textContent = 'CLICK / STANDBY');
+        return;
+      }
+      clickLabel.textContent = `NODE ${node.config.number} / ${node.config.label}`;
+      clickTitle.textContent = node.config.placeholderTitle;
+      clickRegion.textContent = `REGION / ${node.config.region}`;
+      clickBody.textContent = node.config.placeholderBody;
+      if (clickAction) {
+        const hasAction = Boolean(node.config.actionHref && node.config.actionLabel);
+        clickAction.hidden = !hasAction;
+        if (hasAction) {
+          clickAction.href = node.config.actionHref!;
+          clickAction.textContent = node.config.actionLabel!;
+        }
+      }
+      clickStatus && (clickStatus.textContent = `CLICK / ${node.config.number} / OPEN`);
+    };
+
+    const onClickControl = (event: MouseEvent) => {
+      event.stopPropagation();
+      const control = event.currentTarget as HTMLButtonElement;
+      const node = clickNodeVisuals.find((candidate) => candidate.config.id === control.dataset.clickControl) ?? null;
+      if (!node?.active || !node.visibleToCamera) return;
+      setSelectedClickNode(selectedClickId === node.config.id ? null : node);
+    };
+    clickNodeVisuals.forEach((node) => node.control?.addEventListener('click', onClickControl));
+
+    const updateClickNodes = (elapsed: number) => {
+      if (!clickEnabled) return;
+      const statesById = new Map(
+        proximitySnapshot?.states.map((state) => [state.config.id, state]) ?? [],
+      );
+      let nearest: ClickNodeVisual | null = null;
+      for (const node of clickNodeVisuals) {
+        const state = statesById.get(node.config.proximityId);
+        const selected = selectedClickId === node.config.id;
+        node.distance = state?.distance ?? Number.POSITIVE_INFINITY;
+        node.active = state?.active ?? false;
+        node.activation = state?.activation ?? 0;
+        if (node.active && (!nearest || node.distance < nearest.distance)) nearest = node;
+
+        const activation = node.activation;
+        const openBoost = selected ? 1 : 0;
+        const slowPulse = reducedMotion ? 0 : Math.sin(elapsed * 2.1 + Number(node.config.number)) * 0.04;
+        const idlePulse = reducedMotion ? 0 : Math.sin(elapsed * 1.15 + Number(node.config.number)) * 0.035;
+        node.group.visible = true;
+        node.hitTarget.visible = node.active || selected;
+        node.idleCore.scale.setScalar(0.72 + idlePulse * 0.35);
+        node.idleCore.material.opacity = 0.34 - activation * 0.1;
+        node.core.scale.setScalar(0.42 + activation * 0.74 + slowPulse * activation + openBoost * 0.08);
+        node.core.material.opacity = 0.04 + activation * 0.96;
+        node.core.material.emissiveIntensity = 0.32 + activation * 2.25 + openBoost * 0.55;
+        node.halo.scale.setScalar(0.74 + activation * 0.42 + openBoost * 0.16);
+        node.halo.material.opacity = 0.026 + activation * (0.07 + openBoost * 0.1);
+        node.orbitA.scale.setScalar(0.88 + activation * 0.56 + openBoost * 0.18);
+        node.orbitB.scale.setScalar(0.9 + activation * 0.42 + openBoost * 0.22);
+        node.orbitA.material.opacity = activation * (0.22 + openBoost * 0.16);
+        node.orbitB.material.opacity = activation * (0.13 + openBoost * 0.18);
+        node.orbitA.rotation.z = reducedMotion ? 0 : elapsed * (0.22 + activation * 0.25);
+        node.orbitB.rotation.y = reducedMotion ? 0.35 : elapsed * (0.17 + activation * 0.31);
+        node.field.scale.setScalar(0.9 + activation * 0.48 + openBoost * 0.2);
+        node.field.material.opacity = activation * (0.05 + openBoost * 0.065);
+        node.particles.material.opacity = activation * (0.34 + openBoost * 0.22);
+        node.particles.rotation.y = reducedMotion ? 0 : elapsed * (0.25 + activation * 0.55 + openBoost * 0.18);
+        node.particles.rotation.x = reducedMotion ? 0 : Math.sin(elapsed * 0.65) * 0.13;
+        node.light.intensity = 0.16 + activation * (0.18 + openBoost * 0.2);
+      }
+      const selectedNode = selectedClickId
+        ? clickNodeVisuals.find((node) => node.config.id === selectedClickId)
+        : null;
+      if (selectedNode && !selectedNode.active) {
+        setSelectedClickNode(null);
+      }
+      if (!selectedClickId) {
+        clickStatus && (clickStatus.textContent = nearest
+          ? `CLICK / ${nearest.config.number} / READY`
+          : 'CLICK / STANDBY');
+      }
+    };
+
+    const player = new THREE.Group();
+    const playerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(0.62, 1), new THREE.MeshStandardMaterial({ color: 0xc8ffff, emissive: 0x68e8df, emissiveIntensity: 3.2, roughness: 0.2, metalness: 0.3 }));
+    const playerHalo = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 8), new THREE.MeshBasicMaterial({ color: 0x6fe8df, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false }));
+    player.add(playerCore, playerHalo, new THREE.PointLight(0x70e9df, 3.2, 12, 2));
+    world.add(player);
+
+    let rendererLabel = 'RENDERER';
+    let assetLoaded = false;
+    let assetFailed = false;
+    let rendererReady = false;
+    let entryComplete = false;
+    const entryStartedAt = performance.now();
+    const minimumEntryDuration = 7000;
+    const updateEntryLayer = (now: number) => {
+      if (!entryLayer || entryComplete) return;
+      const elapsed = now - entryStartedAt;
+      const timeProgress = THREE.MathUtils.clamp(elapsed / minimumEntryDuration, 0, 1);
+      const ready = rendererReady && (assetLoaded || assetFailed);
+      const progress = ready
+        ? Math.round(timeProgress * 100)
+        : Math.min(92, Math.round(8 + timeProgress * 84));
+      entryProgress?.style.setProperty('width', `${progress}%`);
+      entryPercent && (entryPercent.textContent = `${String(progress).padStart(2, '0')}%`);
+      entryBar?.setAttribute('aria-valuenow', String(progress));
+      if (assetFailed) {
+        entryState && (entryState.textContent = 'USING FALLBACK RENDER PATH');
+      } else if (assetLoaded && rendererReady) {
+        entryState && (entryState.textContent = timeProgress < 1 ? 'CALIBRATING WORLD SYSTEMS' : 'WORLD SYSTEMS READY');
+      } else if (rendererReady) {
+        entryState && (entryState.textContent = 'ASSEMBLING SPATIAL MODEL');
+      } else {
+        entryState && (entryState.textContent = 'INITIALIZING WORLD SYSTEMS');
+      }
+      if (ready && elapsed >= minimumEntryDuration) {
+        entryComplete = true;
+        entryLayer.classList.add('is-complete');
+        root.removeAttribute('aria-busy');
+        window.setTimeout(() => entryLayer.setAttribute('hidden', ''), 680);
+        return;
+      }
+      window.requestAnimationFrame(updateEntryLayer);
+    };
+    window.requestAnimationFrame(updateEntryLayer);
+    const updateStatus = () => {
+      status.textContent = assetLoaded
+        ? `${rendererLabel} / ${proximityEnabled ? 'PROXIMITY READY' : 'SURFACE + SKY READY'}`
+        : `${rendererLabel} / ${stageLabel}`;
+    };
+
+    const loader = new GLTFLoader();
+    loader.load(assetUrl, (gltf) => {
+      gltf.scene.name = stageLabel.replaceAll(' ', '_');
+      if (materialLighting) applyMaterialLighting(gltf.scene);
+      sceneOccluders.length = 0;
+      gltf.scene.traverse((object) => {
+        if (object instanceof THREE.Mesh) sceneOccluders.push(object);
+      });
+      world.add(gltf.scene);
+      assetLoaded = true;
+      updateStatus();
+    }, undefined, () => {
+      assetFailed = true;
+      status.textContent = 'GLB / ASSET LOAD FAILED';
+    });
+
+    const movementCodes = new Set<string>();
+    const handledMovementCodes = new Set([
+      'KeyW',
+      'KeyA',
+      'KeyS',
+      'KeyD',
+      'ShiftLeft',
+      'ShiftRight',
+      'KeyC',
+    ]);
+    const velocity = new THREE.Vector3();
+    const position = new THREE.Vector3(65, 37, 45);
+    const target = new THREE.Vector3();
+    const desiredCamera = new THREE.Vector3();
+    const clock = new THREE.Clock();
+    let yaw = 1.4;
+    let pitch = 0.35;
+    let distance = 50;
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let pointerMoved = false;
+    let renderer: THREE.WebGLRenderer | InstanceType<typeof WebGPURenderer>;
+    let running = true;
+
+    const resetInputState = () => {
+      movementCodes.clear();
+      velocity.set(0, 0, 0);
+      dragging = false;
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (handledMovementCodes.has(event.code)) {
+        event.preventDefault();
+        movementCodes.add(event.code);
+      }
+      if (event.code === 'Escape') setSelectedClickNode(null);
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (!handledMovementCodes.has(event.code)) return;
+      event.preventDefault();
+      movementCodes.delete(event.code);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') resetInputState();
+    };
+    const updateClickPointer = (event: PointerEvent | MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      clickPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      clickPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      canvas.focus({ preventScroll: true });
+      dragging = true;
+      pointerMoved = false;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      pointerStartX = event.clientX;
+      pointerStartY = event.clientY;
+      canvas.setPointerCapture(event.pointerId);
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (!dragging) return;
+      if (Math.hypot(event.clientX - pointerStartX, event.clientY - pointerStartY) > 3) pointerMoved = true;
+      yaw -= (event.clientX - lastX) * 0.006;
+      pitch = THREE.MathUtils.clamp(pitch + (event.clientY - lastY) * 0.005, -0.65, 0.78);
+      lastX = event.clientX;
+      lastY = event.clientY;
+    };
+    const onPointerUp = (event: PointerEvent) => {
+      dragging = false;
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    };
+    const onClick = (event: MouseEvent) => {
+      if (!clickEnabled || pointerMoved) return;
+      updateClickPointer(event);
+      clickRaycaster.setFromCamera(clickPointer, camera);
+      const targets = clickNodeVisuals
+        .filter((node) => node.active && node.visibleToCamera)
+        .map((node) => node.hitTarget);
+      const intersection = clickRaycaster.intersectObjects(targets, false)[0];
+      const blocker = clickRaycaster.intersectObjects(sceneOccluders, false)[0];
+      if (!intersection || (blocker && blocker.distance < intersection.distance - 0.05)) {
+        if (selectedClickId) setSelectedClickNode(null);
+        return;
+      }
+      const nodeId = intersection.object.userData.clickNodeId as string | undefined;
+      const node = clickNodeVisuals.find((candidate) => candidate.config.id === nodeId) ?? null;
+      setSelectedClickNode(node && selectedClickId !== node.config.id ? node : null);
+    };
+    const onOverlayClick = (event: MouseEvent) => {
+      if (!clickEnabled || pointerMoved || event.target === canvas) return;
+      if (selectedClickId) setSelectedClickNode(null);
+    };
+    const onWheel = (event: WheelEvent) => { event.preventDefault(); distance = THREE.MathUtils.clamp(distance + event.deltaY * 0.018, 18, 55); };
+
+    const resize = () => {
+      const rect = root.getBoundingClientRect();
+      camera.aspect = rect.width / Math.max(rect.height, 1);
+      camera.updateProjectionMatrix();
+      renderer?.setSize(rect.width, rect.height, false);
+      renderer?.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+    };
+
+    const update = (delta: number, elapsed: number) => {
+      const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+      const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+      const input = new THREE.Vector3();
+      if (movementCodes.has('KeyW')) input.add(forward);
+      if (movementCodes.has('KeyS')) input.sub(forward);
+      if (movementCodes.has('KeyD')) input.add(right);
+      if (movementCodes.has('KeyA')) input.sub(right);
+      if (movementCodes.has('ShiftLeft') || movementCodes.has('ShiftRight')) input.y += 0.72;
+      if (movementCodes.has('KeyC')) input.y -= 0.72;
+      if (input.lengthSq() > 0) input.normalize();
+      velocity.x = THREE.MathUtils.damp(velocity.x, input.x * 15.5, 7.2, delta);
+      velocity.z = THREE.MathUtils.damp(velocity.z, input.z * 15.5, 7.2, delta);
+      velocity.y = THREE.MathUtils.damp(velocity.y, input.y * 11.5, 8.5, delta);
+      position.addScaledVector(velocity, delta);
+      position.x = THREE.MathUtils.clamp(position.x, -70, 70);
+      position.z = THREE.MathUtils.clamp(position.z, -70, 70);
+      position.y = THREE.MathUtils.clamp(position.y, 0.8, 61.5);
+      player.position.copy(position);
+      updateProximity(delta, elapsed);
+      updateClickNodes(elapsed);
+      const playerCorePulse = reducedMotion ? 0 : Math.sin(elapsed * 4.8) * 0.06;
+      const playerHaloPulse = reducedMotion ? 0 : Math.sin(elapsed * 2.8) * 0.1;
+      playerCore.scale.setScalar(1 + playerCorePulse + velocity.length() * 0.008);
+      playerHalo.scale.setScalar(1 + playerHaloPulse + velocity.length() * 0.012);
+      desiredCamera.set(position.x + Math.sin(yaw) * distance, Math.max(1.3, position.y + 5.5 + Math.sin(pitch) * 12), position.z + Math.cos(yaw) * distance);
+      camera.position.lerp(desiredCamera, 1 - Math.exp(-7 * delta));
+      target.set(position.x, position.y + 1.5, position.z);
+      camera.lookAt(target);
+      camera.updateMatrixWorld();
+      const rect = root.getBoundingClientRect();
+      for (const node of clickNodeVisuals) {
+        clickNodePoint.fromArray(node.config.position);
+        clickNodeViewPoint.copy(clickNodePoint).applyMatrix4(camera.matrixWorldInverse);
+        const inFront = clickNodeViewPoint.z < -camera.near;
+        const interactionCandidate = node.active || selectedClickId === node.config.id;
+        const occluded = interactionCandidate && inFront && isOccludedFromCamera(clickNodePoint);
+        clickNodePoint.project(camera);
+        const inFrame = Math.abs(clickNodePoint.x) <= 1.04 && Math.abs(clickNodePoint.y) <= 1.04;
+        node.visibleToCamera = interactionCandidate && inFront && inFrame && !occluded;
+        if (node.control) {
+          const controlX = (clickNodePoint.x * 0.5 + 0.5) * rect.width;
+          const controlY = (-clickNodePoint.y * 0.5 + 0.5) * rect.height;
+          node.control.style.setProperty('--node-x', `${THREE.MathUtils.clamp(controlX, 24, rect.width - 24)}px`);
+          node.control.style.setProperty('--node-y', `${THREE.MathUtils.clamp(controlY, 24, rect.height - 24)}px`);
+          node.control.disabled = !(node.active && node.visibleToCamera);
+        }
+      }
+      const selectedNode = selectedClickId
+        ? clickNodeVisuals.find((node) => node.config.id === selectedClickId)
+        : null;
+      if (selectedNode && (!selectedNode.active || !selectedNode.visibleToCamera)) {
+        setSelectedClickNode(null);
+      } else if (selectedNode && clickPanel) {
+        clickNodePoint.fromArray(selectedNode.config.position).project(camera);
+        const panelX = (clickNodePoint.x * 0.5 + 0.5) * rect.width;
+        const panelY = (-clickNodePoint.y * 0.5 + 0.5) * rect.height;
+        clickPanel.style.setProperty('--panel-x', `${THREE.MathUtils.clamp(panelX + 24, 18, rect.width - 292)}px`);
+        clickPanel.style.setProperty('--panel-y', `${THREE.MathUtils.clamp(panelY - 82, 82, rect.height - 238)}px`);
+      }
+      skyFallback.position.copy(camera.position);
+    };
+
+    const frame = () => {
+      if (!running) return;
+      const delta = Math.min(clock.getDelta(), 0.05);
+      update(delta, clock.elapsedTime);
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    };
+
+    const init = async () => {
+      const rendererPreference = new URLSearchParams(window.location.search).get('renderer');
+      try {
+        if (rendererPreference !== 'webgpu') throw new Error('WebGPU is opt-in during the S5 stability pass.');
+        const webgpu = new WebGPURenderer({ canvas, alpha: materialLighting, antialias: true, powerPreference: 'high-performance' });
+        await webgpu.init();
+        renderer = webgpu;
+        rendererLabel = 'WEBGPU';
+      } catch {
+        renderer = new THREE.WebGLRenderer({ canvas, alpha: materialLighting, antialias: true, powerPreference: 'high-performance' });
+        rendererLabel = 'WEBGL';
+      }
+      rendererReady = true;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = materialLighting ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+      renderer.toneMappingExposure = materialLighting ? 1.08 : 1;
+      skyFallback.visible = !materialLighting;
+      if (materialLighting) renderer.setClearColor(0x000000, 0);
+      updateStatus();
+      resize();
+      window.addEventListener('resize', resize);
+      window.addEventListener('keydown', onKeyDown, { capture: true });
+      window.addEventListener('keyup', onKeyUp, { capture: true });
+      window.addEventListener('blur', resetInputState);
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      canvas.addEventListener('pointerdown', onPointerDown);
+      canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerup', onPointerUp);
+      canvas.addEventListener('pointercancel', onPointerUp);
+      canvas.addEventListener('lostpointercapture', resetInputState);
+      canvas.addEventListener('wheel', onWheel, { passive: false });
+      canvas.addEventListener('click', onClick);
+      root.addEventListener('click', onOverlayClick);
+      frame();
+    };
+    window.addEventListener('pagehide', () => {
+      resetInputState();
+      running = false;
+      renderer?.dispose();
+      runtimeMaterials.forEach((material) => material.dispose());
+      surfaceMaterials.forEach((material) => material.dispose());
+      controlledMaterials.forEach(({ material }) => material.dispose());
+      clickNodeVisuals.forEach(({ group }) => {
+        group.traverse((object) => {
+          if (object instanceof THREE.Mesh || object instanceof THREE.Points) {
+            object.geometry.dispose();
+            if (Array.isArray(object.material)) object.material.forEach((material) => material.dispose());
+            else object.material.dispose();
+          }
+          if (object instanceof THREE.PointLight) object.dispose();
+        });
+      });
+      surfaceMaps?.dispose();
+      proximityLight.dispose();
+      window.removeEventListener('keydown', onKeyDown, { capture: true });
+      window.removeEventListener('keyup', onKeyUp, { capture: true });
+      window.removeEventListener('blur', resetInputState);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    }, { once: true });
+    init();
+  }
+</script>
+
+<style>
+  .vs002-blockout { background: #102a46; color: #e7f2f0; height: 100%; overflow: hidden; position: relative; width: 100%; }
+  .vs002-entry-layer { align-items: stretch; background: #07131d; color: #dcefed; display: flex; flex-direction: column; inset: 0; justify-content: space-between; padding: clamp(1.4rem, 3vw, 3rem); position: absolute; transition: opacity .68s ease, visibility .68s ease; z-index: 10; }
+  .vs002-entry-layer[hidden] { display: none; }
+  .vs002-entry-layer.is-complete { opacity: 0; pointer-events: none; visibility: hidden; }
+  .vs002-entry-mark, .vs002-entry-meta, .vs002-entry-progress, .vs002-entry-copy > p { font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+  .vs002-entry-mark { color: #8ab8bd; font-size: .68rem; }
+  .vs002-entry-copy { margin: auto 0; max-width: 42rem; }
+  .vs002-entry-copy > p { color: #75b6b8; font-size: .68rem; margin: 0 0 1.1rem; }
+  .vs002-entry-copy h2 { font-size: clamp(2.6rem, 7vw, 7rem); font-weight: 400; letter-spacing: -.065em; line-height: .92; margin: 0 0 1.2rem; }
+  .vs002-entry-copy span { color: #9db7b9; font-size: .9rem; }
+  .vs002-entry-progress { background: rgba(123, 181, 187, .18); height: 1px; margin-top: auto; overflow: hidden; width: min(28rem, 70vw); }
+  .vs002-entry-progress i { background: #9ce1da; display: block; height: 100%; transition: width .28s ease; width: 0; }
+  .vs002-entry-meta { color: #688e94; display: flex; font-size: .62rem; justify-content: space-between; margin-top: .75rem; width: min(28rem, 70vw); }
+  .vs002-blockout[data-visual-mode="material-lighting"] {
+    background:
+      radial-gradient(ellipse 42% 32% at 72% 61%, rgba(151, 199, 201, .28), transparent 70%),
+      linear-gradient(176deg, transparent 0 23%, rgba(120, 170, 180, .08) 24% 26%, transparent 27% 34%, rgba(119, 169, 180, .07) 35% 38%, transparent 39% 100%),
+      linear-gradient(180deg, #0b233a 0%, #1f465c 34%, #587f89 64%, #294956 100%);
+  }
+  [data-blockout-canvas] { background: transparent; display: block; height: 100%; outline: none; position: relative; touch-action: none; width: 100%; z-index: 1; }
+  .vs002-blockout[data-interaction-mode="proximity-click"] [data-blockout-canvas] { cursor: crosshair; }
+  .blockout-hud { display: flex; justify-content: space-between; left: 0; padding: 1.25rem 1.35rem; pointer-events: none; position: absolute; right: 0; top: 0; z-index: 2; }
+  .blockout-hud p, .blockout-hud span, .blockout-state, .blockout-help, .blockout-note { color: #a4c0c7; font-family: var(--font-mono); font-size: .64rem; letter-spacing: .11em; text-transform: uppercase; }
+  .blockout-hud p { margin: 0 0 .55rem; }
+  .blockout-hud h1 { font-size: clamp(1.2rem, 2.2vw, 2rem); font-weight: 400; letter-spacing: -.04em; margin: 0 0 .45rem; }
+  .blockout-state { align-items: end; display: flex; flex-direction: column; gap: .55rem; text-align: right; }
+  .blockout-state a { color: #c7e8e5; pointer-events: auto; text-decoration: none; }
+  .blockout-state strong { color: #d0eeee; font-weight: 400; }
+  .vs002-formal .blockout-hud { justify-content: flex-end; }
+  .vs002-formal .blockout-hud > div:first-child { display: none; }
+  .vs002-formal .blockout-return {
+    background: rgba(5, 17, 25, .46);
+    border: 1px solid rgba(176, 202, 207, .34);
+    color: rgba(220, 235, 235, .82);
+    padding: .58rem .72rem;
+  }
+  .vs002-formal .blockout-return:hover { background: rgba(10, 27, 36, .74); color: #eff9f7; }
+  .blockout-help { bottom: 1.15rem; display: flex; flex-wrap: wrap; gap: .8rem 1.3rem; left: 1.35rem; position: absolute; right: 1.35rem; z-index: 2; }
+  .blockout-help b { color: #e0f7f3; font-weight: 400; }
+  .blockout-note { background: rgba(7, 18, 27, .62); border-left: 1px solid rgba(170, 224, 222, .45); bottom: 4.5rem; max-width: 250px; padding: .8rem 1rem; position: absolute; right: 1.35rem; z-index: 2; }
+  .blockout-note p { color: #9be3dc; margin: 0 0 .55rem; }
+  .blockout-note strong { color: #d2e9e7; font-family: var(--font-sans); font-size: .82rem; font-weight: 400; letter-spacing: 0; line-height: 1.6; text-transform: none; }
+  .click-node-controls { inset: 0; pointer-events: none; position: absolute; z-index: 4; }
+  .click-node-controls button {
+    background: rgba(5, 18, 28, .88);
+    border: 1px solid rgba(145, 184, 226, .8);
+    border-radius: 50%;
+    color: #c6dcf5;
+    height: 2.75rem;
+    left: var(--node-x, 50%);
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    top: var(--node-y, 50%);
+    transform: translate(-50%, -50%);
+    width: 2.75rem;
+  }
+  .click-node-controls button:focus-visible:not(:disabled) { opacity: 1; }
+  .click-node-controls button[data-click-role="exit"]:focus-visible:not(:disabled) {
+    background: rgba(55, 39, 12, .9);
+    border-color: rgba(224, 183, 96, .9);
+    color: #f0d191;
+  }
+  .blockout-info { background: rgba(4, 12, 16, .9); border: 1px solid rgba(132, 220, 217, .62); box-shadow: 0 0 28px rgba(54, 217, 210, .14); left: var(--panel-x, 60%); max-width: 260px; padding: 1rem 1.05rem; pointer-events: auto; position: absolute; top: var(--panel-y, 35%); z-index: 3; }
+  .blockout-info[hidden] { display: none; }
+  .blockout-info > p:first-child, .blockout-info > strong, .blockout-info small { color: #8fc5c4; display: block; font-family: var(--font-mono); font-size: .63rem; font-weight: 400; letter-spacing: .1em; text-transform: uppercase; }
+  .blockout-info > p:first-child { color: #8be4df; margin: 0 0 .7rem; }
+  .blockout-info h2 { font-size: 1.05rem; font-weight: 400; margin: 0 0 .5rem; }
+  .blockout-info > strong { color: #75aaa9; }
+  .blockout-info > p:not(:first-child) { color: #b5c9ca; font-size: .82rem; line-height: 1.7; margin: .8rem 0; }
+  .blockout-info [data-click-action] {
+    border: 1px solid rgba(224, 183, 96, .58);
+    color: #e4bd70;
+    display: inline-flex;
+    font-family: var(--font-mono);
+    font-size: .66rem;
+    letter-spacing: .09em;
+    margin-bottom: .85rem;
+    padding: .58rem .72rem;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+  .blockout-info [data-click-action]:hover { background: rgba(187, 130, 46, .14); color: #f0d191; }
+  .blockout-info [data-click-action][hidden] { display: none; }
+  .blockout-info small { border-top: 1px solid rgba(143, 207, 211, .2); padding-top: .7rem; }
+  @media (max-width: 680px) { .blockout-hud { display: block; } .blockout-state { align-items: start; margin-top: 1rem; text-align: left; } .blockout-note { bottom: 5.3rem; left: 1rem; right: auto; } .blockout-info { max-width: min(260px, calc(100% - 2rem)); } }
+</style>

@@ -1,0 +1,98 @@
+---
+import LabLayout from '@layouts/LabLayout.astro';
+import ArchiveAtlas from '@components/lab/ArchiveAtlas.astro';
+import { formatDate, getArchiveObjects } from '@lib/archive';
+import type { ArchiveAtlasNode } from '../../../lab/data/archive-atlas';
+
+const objects = (await getArchiveObjects()).filter(({ id, data }) =>
+  id !== 'obs-x'
+  && id !== 'june-observation-journal'
+  && data.status !== 'draft'
+  && data.status !== 'future'
+);
+
+function readingMinutes(body: string) {
+  const plain = body
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/[#>*_[\]()-]/g, ' ');
+  const han = plain.match(/[\u3400-\u9fff]/g)?.length ?? 0;
+  const latin = plain.match(/[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)*/g)?.length ?? 0;
+  return Math.max(1, Math.ceil(han / 350 + latin / 220));
+}
+
+const prepared = objects.map((object) => {
+  const slug = object.data.slug ?? object.id;
+  const minutes = readingMinutes((object as typeof object & { body?: string }).body ?? '');
+  return { object, slug, minutes, timestamp: object.data.date.valueOf() };
+});
+
+const minTime = Math.min(...prepared.map(({ timestamp }) => timestamp));
+const maxTime = Math.max(...prepared.map(({ timestamp }) => timestamp));
+const minMinutes = Math.min(...prepared.map(({ minutes }) => minutes));
+const maxMinutes = Math.max(...prepared.map(({ minutes }) => minutes));
+const validSlugs = new Set(prepared.map(({ slug }) => slug));
+
+const atlasNodes: ArchiveAtlasNode[] = prepared.map(({ object, slug, minutes, timestamp }) => ({
+  id: slug,
+  objectId: object.data.objectId ?? slug,
+  title: object.data.title,
+  summary: object.data.summary,
+  date: object.data.date.toISOString(),
+  dateLabel: formatDate(object.data.date),
+  updated: object.data.updated?.toISOString() ?? null,
+  updatedLabel: object.data.updated ? formatDate(object.data.updated) : null,
+  type: object.data.type,
+  field: object.data.field,
+  status: object.data.status,
+  tags: object.data.tags,
+  readingMinutes: minutes,
+  readingLabel: `${minutes} 分鐘閱讀`,
+  readingWeight: maxMinutes === minMinutes ? 0.5 : (minutes - minMinutes) / (maxMinutes - minMinutes),
+  timePosition: maxTime === minTime ? 0.5 : (timestamp - minTime) / (maxTime - minTime),
+  related: (object.data.related ?? []).filter((related) => validSlugs.has(related)),
+  href: `/archive/${slug}`,
+}));
+---
+
+<LabLayout
+  title="Archive Atlas | Visual Systems"
+  description="以真實公開 Archive Objects 生成的可搜索時間地圖。"
+  section="Visual Systems / VS–001"
+>
+  <main class="atlas-page">
+    <header class="page-intro">
+      <div>
+        <p>VISUAL SYSTEM / VS–001</p>
+        <h1>Archive<br />Atlas</h1>
+      </div>
+      <div class="intro-copy">
+        <strong>以時間和內容領域重新閱讀 Archive。</strong>
+        <p>每個節點都來自一個公開 Archive Object。位置表示首次發布時間，軌道表示內容領域，大小表示實際閱讀長度；連線只使用作者明確填寫的 related。</p>
+      </div>
+    </header>
+
+    <ArchiveAtlas nodes={atlasNodes} />
+
+    <footer class="page-foot">
+      <span>LIVE ARCHIVE INDEX / {atlasNodes.length} OBJECTS</span>
+      <span>BUILD-TIME MDX / WORKER / CANVAS</span>
+      <a href="/lab/visual-systems">返回 Visual Systems</a>
+    </footer>
+  </main>
+</LabLayout>
+
+<style>
+  .atlas-page { padding: clamp(4rem, 8vw, 8rem) 0 2rem; }
+  .page-intro { align-items: end; display: grid; gap: 3rem; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.55fr); margin-bottom: 3rem; }
+  .page-intro > div > p:first-child, .page-foot { color: #78919b; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; }
+  h1 { font-size: clamp(4rem, 10vw, 10rem); font-weight: 400; letter-spacing: -0.075em; line-height: 0.78; margin: 1rem 0 0; }
+  .intro-copy { border-left: 1px solid #334149; padding-left: 1.25rem; }
+  .intro-copy strong { font-size: 1.05rem; font-weight: 400; }
+  .intro-copy p { color: #96a6aa; line-height: 1.8; margin: 0.9rem 0 0; }
+  .page-foot { display: flex; gap: 2rem; justify-content: space-between; padding-top: 1rem; }
+  .page-foot a { color: #a9d2d6; }
+  @media (max-width: 760px) { .page-intro { align-items: start; grid-template-columns: 1fr; } .page-foot { align-items: flex-start; flex-direction: column; gap: 0.7rem; } }
+</style>

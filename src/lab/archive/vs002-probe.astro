@@ -1,0 +1,18 @@
+---
+// Archived S2 probe. Kept outside src/pages so it is not emitted as a public route.
+import ImmersiveLabLayout from '@layouts/ImmersiveLabLayout.astro';
+import VS002MinimalProbe from '@components/lab/VS002MinimalProbe.astro';
+---
+
+<ImmersiveLabLayout
+  title="VS–002 S2 Detail Trial | Visual Systems"
+  description="VS–002 的隔離建模實驗：Blender 核心塔細節語彙、半實體光粒操控、靠近／離開光效與粒子信息節點。"
+>
+  <main class="probe-page">
+    <VS002MinimalProbe />
+  </main>
+</ImmersiveLabLayout>
+
+<style>
+  .probe-page { height: 100dvh; overflow: hidden; width: 100%; }
+</style>

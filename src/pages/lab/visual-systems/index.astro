@@ -2,103 +2,59 @@
 import LabLayout from '@layouts/LabLayout.astro';
 ---
 
-<LabLayout
-  title="Visual Systems | Lab"
-  description="浏览器图形、时间、空间与输入实验。"
-  section="Visual Systems"
->
+<LabLayout title="Visual Systems | Lab" description="瀏覽器圖形、時間、空間與輸入實驗。" section="Visual Systems">
   <main class="section-page">
     <header>
       <p>LAB SECTION / 01</p>
       <h1>Visual Systems</h1>
       <div class="section-copy">
-        <strong>动态前端不是装饰，而是一个可以持续运行和被观察的系统。</strong>
-        <span>Canvas / WebGL / Time / Input / Space</span>
+        <strong>技術必須幫助理解、探索或使用博客內容；視覺表現只負責增強體驗。</strong>
+        <span>CONTENT / CANVAS / WORKERS / INPUT</span>
       </div>
     </header>
 
-    <a class="project" href="/lab/visual-systems/temporal-field">
+    <a class="project" href="/lab/visual-systems/archive-atlas">
       <div class="project-index">VS–001</div>
       <div>
-        <span>AVAILABLE / CLIENT ONLY</span>
-        <h2>Temporal Field</h2>
-        <p>一个由本地时间、停留和输入持续改变的生成环境。</p>
+        <span>AVAILABLE / LIVE ARCHIVE INDEX</span>
+        <h2>Archive Atlas</h2>
+        <p>七個公開 Archive Objects 已接入時間、領域、類型、狀態、閱讀長度與顯式關聯映射。</p>
       </div>
-      <strong>运行项目 →</strong>
+      <strong>打開 Archive Atlas →</strong>
     </a>
+
+    <a class="project" href="/lab/visual-systems/vs002">
+      <div class="project-index">VS–002</div>
+      <div>
+        <span>SERVER WORLD / v0.2.2p PREVIEW</span>
+        <h2>Server World</h2>
+        <p>探索由个人 NAS、计算机工具与博客内容投射而成的服务器世界。</p>
+      </div>
+      <strong>进入 Server World →</strong>
+    </a>
+
+    <aside class="visual-capability">
+      <span>VISUAL CAPABILITY / NOT A PROJECT</span>
+      <p>原 Temporal Field 的 Shader、Canvas 與生命週期能力保留為視覺修飾原型，只能服務內容、轉場和交互反饋，不再單獨占據項目入口。</p>
+    </aside>
   </main>
 </LabLayout>
 
 <style>
-  .section-page {
-    padding: clamp(4rem, 9vw, 8rem) 0;
-  }
-
-  header > p,
-  .section-copy span,
-  .project span,
-  .project-index,
-  .project > strong {
-    color: #78919b;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-  }
-
-  h1 {
-    font-size: clamp(3.6rem, 10vw, 10rem);
-    font-weight: 400;
-    letter-spacing: -0.07em;
-    line-height: 0.9;
-    margin: 1rem 0 2.5rem;
-  }
-
-  .section-copy {
-    border-top: 1px solid #26343a;
-    display: flex;
-    gap: 2rem;
-    justify-content: space-between;
-    padding-top: 1rem;
-  }
-
-  .section-copy strong {
-    font-size: 1.05rem;
-    font-weight: 400;
-  }
-
-  .project {
-    align-items: center;
-    border-bottom: 1px solid #26343a;
-    border-top: 1px solid #26343a;
-    display: grid;
-    gap: 2rem;
-    grid-template-columns: 90px minmax(0, 1fr) auto;
-    margin-top: 7rem;
-    padding: 2rem 0;
-  }
-
-  .project h2 {
-    font-size: clamp(2rem, 5vw, 5rem);
-    font-weight: 400;
-    margin: 0.5rem 0;
-  }
-
-  .project p {
-    color: #94a3a8;
-    margin: 0;
-  }
-
-  .project:hover {
-    background: rgba(124, 189, 198, 0.035);
-  }
-
-  @media (max-width: 700px) {
-    .section-copy {
-      flex-direction: column;
-    }
-
-    .project {
-      grid-template-columns: 1fr;
-    }
-  }
+  .section-page { column-gap: 1rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: clamp(4rem, 9vw, 8rem) 0; row-gap: 1rem; }
+  .section-page > header, .section-page > .visual-capability { grid-column: 1 / -1; }
+  header > p, .section-copy span, .project span, .project-index, .project > strong { color: #78919b; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; }
+  h1 { font-size: clamp(4rem, 8vw, 8rem); font-weight: 400; letter-spacing: -0.07em; line-height: 0.9; margin: 1rem 0 2.5rem; max-width: 11ch; }
+  .section-copy { border-top: 1px solid #26343a; display: flex; gap: 2rem; justify-content: space-between; padding-top: 1rem; }
+  .section-copy strong { font-size: 1.05rem; font-weight: 400; }
+  .project { align-items: stretch; border: 1px solid #26343a; display: grid; gap: 1.2rem; grid-template-columns: 1fr auto; margin-top: 3.5rem; min-height: 300px; padding: clamp(1.4rem, 3vw, 2.5rem); }
+  .project-index { grid-column: 1 / -1; }
+  .project h2 { align-self: end; font-size: clamp(2.1rem, 4vw, 4.4rem); font-weight: 400; letter-spacing: -0.055em; margin: auto 0 0.55rem; }
+  .project p { color: #94a3a8; margin: 0; }
+  .project > strong { align-self: end; color: #a9d2d6; margin-bottom: 0.75rem; text-align: right; }
+  .project:hover { background: rgba(124, 189, 198, 0.035); }
+  .visual-capability { border-bottom: 1px solid #26343a; display: grid; gap: 0.75rem; grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr); padding: 1.25rem 0; }
+  .visual-capability span { color: #78919b; font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.1em; }
+  .visual-capability p { color: #82959a; line-height: 1.7; margin: 0; }
+  @media (max-width: 700px) { .section-page { display: block; } .section-copy { flex-direction: column; } .project { grid-template-columns: 1fr; margin-top: 2.5rem; min-height: 240px; } .project > strong { text-align: left; } .visual-capability { margin-top: 2.5rem; } }
 </style>

@@ -4,9 +4,10 @@
   "staleAfterSeconds": 7200,
   "sourceStatus": "ok",
   "data": {
-    "labVersion": "0.1.0",
+    "labVersion": "0.2.2-preview.0",
     "projects": [
-      { "id": "temporal-field", "section": "visual-systems", "dataMode": "client-only", "status": "available" },
+      { "id": "archive-atlas", "section": "visual-systems", "dataMode": "build-time-mdx", "status": "available" },
+      { "id": "vs002-server-world", "section": "visual-systems", "dataMode": "client-3d", "status": "preview" },
       { "id": "nas-constellation", "section": "nas-observatory", "dataMode": "periodic-snapshot", "status": "fixture" }
     ],
     "nasCapabilities": { "snapshot": true, "history24h": true, "history7d": true, "realtime": false }

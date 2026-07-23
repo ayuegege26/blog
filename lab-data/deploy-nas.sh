@@ -18,8 +18,10 @@ if [ -f "$NGINX_SITE" ]; then
   cp -a "$NGINX_SITE" "$BACKUP/nginx-ayue-observatory"
 fi
 
+rm -rf "$PROJECT/dist"
 tar -xzf "$ARCHIVE" -C "$PROJECT"
 chown -R "$SERVICE_USER:$SERVICE_GROUP" "$PROJECT"
+chmod -R u+rwX "$PROJECT"
 
 runuser -u "$SERVICE_USER" -- /usr/bin/python3 "$PROJECT/lab-data/collector.py"
 
@@ -53,7 +55,10 @@ if marker not in text:
 PY
 
 if nginx -t; then
-  systemctl reload nginx
+  # The packaged service can report a reload failure when /run/nginx.pid is
+  # owned by the NAS vendor nginx. Keep the service-manager attempt, then
+  # signal the Debian nginx master serving this site directly.
+  systemctl reload nginx || true
   # This NAS also runs /usr/trim/nginx, which can own the shared PID file.
   # Explicitly signal the Debian nginx master that serves port 8818.
   SITE_NGINX_MASTER=$(pgrep -f '^nginx: master process /usr/sbin/nginx' || true)

@@ -1,13 +1,15 @@
 ---
 import NasConstellation from '@components/lab/NasConstellation.astro';
 import LabLayout from '@layouts/LabLayout.astro';
+
+const gatewayMode = import.meta.env.PUBLIC_LAB_DATA_MODE === 'gateway';
 ---
 
 <LabLayout title="NAS Constellation | NAS Observatory" description="使用脱敏快照与聚合历史构成的公开 NAS 服务星图。" section="NAS Observatory / NO–001">
   <main class="project-page">
     <header class="project-heading">
       <div><p>NAS OBSERVATORY / NO–001</p><h1>NAS Constellation</h1></div>
-      <p>当前使用脱敏 fixture 验证数据契约和全部界面状态，尚未连接真实 NAS Data Gateway。</p>
+      <p>{gatewayMode ? '当前连接匿名只读 NAS Data Gateway；仅展示定期更新的公开聚合数据。' : '当前使用脱敏 fixture 验证数据契约和全部界面状态。'}</p>
     </header>
     <NasConstellation />
     <footer class="project-meta"><span>ANONYMOUS / READ ONLY</span><span>HOURLY SNAPSHOT / 2H STALE</span><a href="/lab/nas-observatory">返回 NAS Observatory</a></footer>

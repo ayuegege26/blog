@@ -1,0 +1,622 @@
+<section class="vs002-probe" data-vs002-probe aria-labelledby="vs002-probe-title">
+  <div class="probe-stage">
+    <canvas data-vs002-canvas aria-label="VS–002 最小化 3D 建模与交互实验"></canvas>
+
+    <header class="probe-hud">
+      <div>
+        <p class="probe-kicker">VS–002 / S2 DETAIL TRIAL</p>
+        <h1 id="vs002-probe-title">Core Tower / Detail Language</h1>
+        <p class="probe-note">隔離測試 Blender 低／中模細節密度、冷色結構分段與局部光帶；不回寫正式資產。</p>
+      </div>
+      <div class="probe-state" aria-live="polite">
+        <a class="probe-exit" href="/lab/visual-systems">EXIT / VISUAL SYSTEMS</a>
+        <span data-renderer-state>INITIALIZING</span>
+        <strong data-proximity-state>NODE / OUTSIDE RANGE</strong>
+      </div>
+    </header>
+
+    <div class="probe-help" aria-label="操作說明">
+      <span><b>W A S D</b> 相對相機移動</span>
+      <span><b>SHIFT</b> 上升</span>
+      <span><b>CTRL</b> 下降</span>
+      <span><b>DRAG</b> 旋轉視角</span>
+      <span><b>CLICK</b> 粒子節點</span>
+    </div>
+
+    <aside class="probe-info" data-info-panel aria-labelledby="probe-info-title" hidden>
+      <p class="probe-info-label">NODE / NAS CORE</p>
+      <h2 id="probe-info-title">Personal Server World</h2>
+      <p>這個最小節點代表個人 NAS：資料、工具與博客內容在同一個外部服務器世界中被重新組織。</p>
+      <p class="probe-info-meta">CLICK AGAIN 或按 ESC 收起信息</p>
+    </aside>
+
+    <div class="probe-fallback" data-vs002-fallback hidden>
+      <strong>3D runtime unavailable</strong>
+      <p>此裝置無法初始化 WebGPU／WebGL。下方文字保留本次實驗的交互邏輯說明。</p>
+    </div>
+
+    <div class="probe-crosshair" aria-hidden="true"><span></span></div>
+  </div>
+
+  <div class="probe-ledger" aria-label="實驗狀態">
+    <span>PROXIMITY RANGE <strong data-range-value>12.5</strong></span>
+    <span>WORLD BOUNDS <strong>±70 / 0.8–61.5</strong></span>
+    <span>MODEL SOURCE <strong>BLENDER GLB / EXPERIMENT</strong></span>
+    <span>SURFACE SAMPLE <strong data-surface-state>PENDING</strong></span>
+    <span>CLICK TARGET <strong>NAS CORE PARTICLE</strong></span>
+    <span data-interaction-status>靠近節點以啟動局部光效</span>
+  </div>
+</section>
+
+<script>
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  import { WebGPURenderer } from 'three/webgpu';
+  import { createVS002SurfaceMaps, createVS002SurfaceMaterial } from '@lib/vs002-surface-maps';
+  import { VS002ProximityRegistry, VS002_PROBE_PROXIMITY_NODES } from '@lib/vs002-proximity';
+
+  const root = document.querySelector<HTMLElement>('[data-vs002-probe]');
+
+  if (root) {
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-vs002-canvas]')!;
+    const fallback = root.querySelector<HTMLElement>('[data-vs002-fallback]')!;
+    const rendererState = root.querySelector<HTMLElement>('[data-renderer-state]')!;
+    const proximityState = root.querySelector<HTMLElement>('[data-proximity-state]')!;
+    const interactionStatus = root.querySelector<HTMLElement>('[data-interaction-status]')!;
+    const surfaceState = root.querySelector<HTMLElement>('[data-surface-state]')!;
+    const infoPanel = root.querySelector<HTMLElement>('[data-info-panel]')!;
+    const stage = root.querySelector<HTMLElement>('.probe-stage')!;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#102a46');
+    scene.fog = new THREE.FogExp2('#214154', 0.009);
+
+    const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 180);
+    const world = new THREE.Group();
+    scene.add(world);
+
+    const colors = {
+      steel: 0x263c47,
+      steelLight: 0x3c5964,
+      edge: 0x6b9ca3,
+      cyan: 0x7de7e2,
+      cyanDeep: 0x1f707b,
+      white: 0xc8eeee,
+    };
+
+    const opaque = (color: number, roughness = 0.66, metalness = 0.82) =>
+      new THREE.MeshStandardMaterial({ color, roughness, metalness });
+    const emissive = (color: number, intensity = 0.8) =>
+      new THREE.MeshStandardMaterial({
+        color: 0x102d33,
+        emissive: color,
+        emissiveIntensity: intensity,
+        roughness: 0.38,
+        metalness: 0.52,
+      });
+
+    const surfaceMaps = createVS002SurfaceMaps();
+    const applySurfaceSample = (mesh: THREE.Mesh) => {
+      const sourceMaterial = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      if (!(sourceMaterial instanceof THREE.MeshStandardMaterial)) return false;
+      mesh.material = createVS002SurfaceMaterial(
+        sourceMaterial,
+        surfaceMaps,
+        `${sourceMaterial.name || mesh.name}_SURFACE_SAMPLE`,
+      );
+      return true;
+    };
+
+    const building = new THREE.Group();
+    building.name = 'single-server-structure';
+    building.scale.set(2.2, 2.8, 2.2);
+    world.add(building);
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(8.3, 8.8, 0.8, 8), opaque(0x0d171c));
+    base.position.y = 0.4;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    building.add(base);
+
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 7.2, 8.2, 4), opaque(colors.steel));
+    lower.position.y = 4.8;
+    lower.rotation.y = Math.PI / 4;
+    lower.castShadow = true;
+    lower.receiveShadow = true;
+    building.add(lower);
+
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 5.15, 9.2, 4), opaque(colors.steelLight));
+    upper.position.y = 13.5;
+    upper.rotation.y = Math.PI / 4;
+    upper.castShadow = true;
+    upper.receiveShadow = true;
+    building.add(upper);
+
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(2.05, 4.2, 4), opaque(0x587985));
+    crown.position.y = 20.2;
+    crown.rotation.y = Math.PI / 4;
+    crown.castShadow = true;
+    building.add(crown);
+
+    const ringMaterial = emissive(colors.cyanDeep, 0.36);
+    const ringLevels = [2.1, 7.4, 13.1, 17.8];
+    const rings: THREE.Mesh[] = [];
+    ringLevels.forEach((y, index) => {
+      const radius = [7.5, 6.0, 4.55, 3.15][index];
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, index === 0 ? 0.075 : 0.055, 6, 4), ringMaterial.clone());
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = y;
+      ring.userData.baseScale = 1;
+      rings.push(ring);
+      building.add(ring);
+    });
+
+    const edgeMaterial = emissive(colors.cyanDeep, 0.28);
+    const supports: THREE.Mesh[] = [];
+    for (let i = 0; i < 4; i += 1) {
+      const support = new THREE.Mesh(new THREE.BoxGeometry(0.16, 18.5, 0.16), edgeMaterial.clone());
+      const angle = Math.PI / 4 + i * Math.PI / 2;
+      support.position.set(Math.cos(angle) * 4.8, 9.2, Math.sin(angle) * 4.8);
+      support.rotation.y = angle;
+      supports.push(support);
+      building.add(support);
+    }
+
+    const detailTrial = new THREE.Group();
+    detailTrial.name = 's2-detail-trial-runtime';
+    world.add(detailTrial);
+    new GLTFLoader().load(
+      '/assets/vs002/experiments/vs002-s2-core-detail-trial.glb',
+      (gltf) => {
+        gltf.scene.name = 'S2_CORE_DETAIL_TRIAL';
+        let surfaceSampleCount = 0;
+        gltf.scene.traverse((child) => {
+          if (!(child instanceof THREE.Mesh)) return;
+          child.castShadow = true;
+          child.receiveShadow = true;
+          if (!Array.isArray(child.material)) child.material = child.material.clone();
+          if (child.name === 'TRIAL_CORE_LOWER' || child.name === 'TRIAL_DOCKING_LEDGE') {
+            if (applySurfaceSample(child)) surfaceSampleCount += 1;
+          }
+          if (child.name.startsWith('DETAIL_RING_')) rings.push(child);
+          if (child.name.startsWith('DETAIL_RIB_') || child.name.startsWith('DETAIL_INSET_') || child.name === 'DETAIL_DOCK_LIGHT') supports.push(child);
+        });
+        building.visible = false;
+        detailTrial.add(gltf.scene);
+        surfaceState.textContent = surfaceSampleCount > 0 ? `${surfaceSampleCount} MESHES / COLOR + ROUGHNESS` : 'NO MATCH';
+        interactionStatus.textContent = 'Blender 細節試驗資產已載入 / 靠近節點以檢查光效';
+      },
+      undefined,
+      () => {
+        surfaceState.textContent = 'SKIPPED / GLB FAILED';
+        interactionStatus.textContent = 'Blender 試驗資產載入失敗 / 已保留原始 probe 模型';
+      },
+    );
+
+    const beacon = new THREE.Group();
+    beacon.name = 'nas-core-particle';
+    beacon.position.set(0, 31.4, 14.25);
+    beacon.scale.setScalar(1.35);
+    world.add(beacon);
+
+    const beaconCore = new THREE.Mesh(new THREE.IcosahedronGeometry(0.38, 1), emissive(colors.cyan, 1.6));
+    beaconCore.userData.interactive = true;
+    beacon.add(beaconCore);
+
+    const beaconHalo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.95, 12, 8),
+      new THREE.MeshBasicMaterial({ color: colors.cyan, transparent: true, opacity: 0.075, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    beacon.add(beaconHalo);
+
+    const proximityWave = new THREE.Mesh(
+      new THREE.TorusGeometry(1.55, 0.045, 8, 32),
+      new THREE.MeshBasicMaterial({ color: colors.cyan, transparent: true, opacity: 0.02, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    proximityWave.rotation.x = Math.PI / 2;
+    beacon.add(proximityWave);
+    const proximityField = new THREE.Mesh(
+      new THREE.SphereGeometry(1.7, 16, 10),
+      new THREE.MeshBasicMaterial({ color: colors.cyanDeep, transparent: true, opacity: 0.018, wireframe: true, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    beacon.add(proximityField);
+
+    const beaconParticles = new THREE.Points(
+      new THREE.BufferGeometry(),
+      new THREE.PointsMaterial({ color: colors.white, size: 0.07, transparent: true, opacity: 0.72, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    const particlePositions = new Float32Array(36 * 3);
+    for (let i = 0; i < 36; i += 1) {
+      const angle = i * 2.39996;
+      const radius = 0.42 + (i % 6) * 0.055;
+      particlePositions[i * 3] = Math.cos(angle) * radius;
+      particlePositions[i * 3 + 1] = ((i % 9) - 4) * 0.12;
+      particlePositions[i * 3 + 2] = Math.sin(angle) * radius;
+    }
+    beaconParticles.geometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    beacon.add(beaconParticles);
+
+    const playerVisual = new THREE.Group();
+    playerVisual.name = 'controllable-light-particle';
+    world.add(playerVisual);
+    const playerCore = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.34, 1),
+      new THREE.MeshStandardMaterial({ color: 0xc8ffff, emissive: 0x68e8df, emissiveIntensity: 2.8, roughness: 0.22, metalness: 0.35 }),
+    );
+    playerVisual.add(playerCore);
+    const playerHalo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.72, 12, 8),
+      new THREE.MeshBasicMaterial({ color: 0x6fe8df, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    playerVisual.add(playerHalo);
+    const playerSwarmGeometry = new THREE.BufferGeometry();
+    const playerSwarmPositions = new Float32Array(28 * 3);
+    for (let i = 0; i < 28; i += 1) {
+      const angle = i * 2.196;
+      const radius = 0.42 + (i % 5) * 0.065;
+      playerSwarmPositions[i * 3] = Math.cos(angle) * radius;
+      playerSwarmPositions[i * 3 + 1] = ((i % 7) - 3) * 0.1;
+      playerSwarmPositions[i * 3 + 2] = Math.sin(angle) * radius - (i % 4) * 0.12;
+    }
+    playerSwarmGeometry.setAttribute('position', new THREE.BufferAttribute(playerSwarmPositions, 3));
+    const playerSwarm = new THREE.Points(
+      playerSwarmGeometry,
+      new THREE.PointsMaterial({ color: 0xbafff8, size: 0.065, transparent: true, opacity: 0.82, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    playerVisual.add(playerSwarm);
+    const playerLight = new THREE.PointLight(0x70e9df, 2.6, 7, 2);
+    playerVisual.add(playerLight);
+
+    const trailCount = 22;
+    const trailPositions = new Float32Array(trailCount * 3);
+    const playerTrail = new THREE.Points(
+      new THREE.BufferGeometry(),
+      new THREE.PointsMaterial({ color: 0x70e9df, size: 0.075, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    playerTrail.geometry.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+    world.add(playerTrail);
+
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(112, 64),
+      new THREE.MeshStandardMaterial({ color: 0x10222d, roughness: 0.9, metalness: 0.2 }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
+    ground.receiveShadow = true;
+    world.add(ground);
+
+    const grid = new THREE.GridHelper(140, 56, 0x18363c, 0x0b1c22);
+    grid.position.y = 0.015;
+    (grid.material as THREE.Material).transparent = true;
+    (grid.material as THREE.Material).opacity = 0.42;
+    world.add(grid);
+
+    const skyGeometry = new THREE.SphereGeometry(150, 48, 24);
+    const skyPosition = skyGeometry.getAttribute('position');
+    const skyColors = new Float32Array(skyPosition.count * 3);
+    const skyTop = new THREE.Color('#12345a');
+    const skyHorizon = new THREE.Color('#79aeba');
+    const skyBottom = new THREE.Color('#132532');
+    for (let i = 0; i < skyPosition.count; i += 1) {
+      const height = skyPosition.getY(i) / 150;
+      const color = height >= 0
+        ? skyHorizon.clone().lerp(skyTop, THREE.MathUtils.smoothstep(height, 0.05, 0.92))
+        : skyBottom.clone().lerp(skyHorizon, THREE.MathUtils.smoothstep(height, -0.85, 0.08));
+      skyColors[i * 3] = color.r;
+      skyColors[i * 3 + 1] = color.g;
+      skyColors[i * 3 + 2] = color.b;
+    }
+    skyGeometry.setAttribute('color', new THREE.Float32BufferAttribute(skyColors, 3));
+    const skyDome = new THREE.Mesh(
+      skyGeometry,
+      new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false }),
+    );
+    skyDome.renderOrder = -1000;
+    scene.add(skyDome);
+
+    scene.add(new THREE.HemisphereLight(0x9bbfd9, 0x203442, 2.45));
+    scene.add(new THREE.AmbientLight(0x4d718b, 0.32));
+    const keyLight = new THREE.DirectionalLight(0x8eabc3, 1.05);
+    keyLight.position.set(-18, 18, 10);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+    const cyanLight = new THREE.PointLight(colors.cyan, 2.4, 32, 2);
+    cyanLight.position.copy(beacon.position);
+    scene.add(cyanLight);
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const keys = new Set<string>();
+    const clock = new THREE.Clock();
+    const velocity = new THREE.Vector3();
+    const player = new THREE.Vector3(30, 10, 40);
+    for (let i = 0; i < trailCount; i += 1) {
+      trailPositions[i * 3] = player.x;
+      trailPositions[i * 3 + 1] = player.y;
+      trailPositions[i * 3 + 2] = player.z;
+    }
+    const target = new THREE.Vector3();
+    const desiredCamera = new THREE.Vector3();
+    const bounds = { min: -70, max: 70, minY: 0.8, maxY: 61.5 };
+    const proximityRange = 12.5;
+    const proximityRegistry = new VS002ProximityRegistry(VS002_PROBE_PROXIMITY_NODES);
+    let renderer: THREE.WebGLRenderer | InstanceType<typeof WebGPURenderer>;
+    let running = true;
+    let proximityActive = false;
+    let infoOpen = false;
+    let yaw = 0.58;
+    let pitch = 0.25;
+    let distance = 30;
+    let dragging = false;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+
+    const buildingRadiusAt = (y: number) => {
+      const localY = y / 2.8;
+      if (localY < 1.2) return 8.4 * 2.2;
+      if (localY < 8.9) return THREE.MathUtils.lerp(7.2, 5.2, (localY - 1.2) / 7.7) * 2.2;
+      if (localY < 18.1) return THREE.MathUtils.lerp(5.15, 3.3, (localY - 8.9) / 9.2) * 2.2;
+      return 2.3 * 2.2;
+    };
+
+    const updatePointer = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    };
+
+    const setInfo = (open: boolean) => {
+      infoOpen = open;
+      infoPanel.hidden = !open;
+      interactionStatus.textContent = open ? '信息节点已打开 / ESC 或再次点击可收起' : proximityActive ? '节点在感知范围内 / 局部光效已激活' : '靠近节点以启动局部光效';
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (['w', 'a', 's', 'd', 'shift', 'control', 'escape'].includes(event.key.toLowerCase())) event.preventDefault();
+      keys.add(event.key.toLowerCase());
+      if (event.key === 'Escape') setInfo(false);
+    };
+    const onKeyUp = (event: KeyboardEvent) => keys.delete(event.key.toLowerCase());
+
+    const onPointerDown = (event: PointerEvent) => {
+      dragging = true;
+      lastPointerX = event.clientX;
+      lastPointerY = event.clientY;
+      canvas.setPointerCapture(event.pointerId);
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (!dragging) return;
+      // The probe convention is direct horizontal drag: move right to turn right.
+      yaw -= (event.clientX - lastPointerX) * 0.006;
+      pitch = THREE.MathUtils.clamp(pitch + (event.clientY - lastPointerY) * 0.005, -0.65, 0.78);
+      lastPointerX = event.clientX;
+      lastPointerY = event.clientY;
+    };
+    const onPointerUp = (event: PointerEvent) => {
+      dragging = false;
+      canvas.releasePointerCapture(event.pointerId);
+    };
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      distance = THREE.MathUtils.clamp(distance + event.deltaY * 0.012, 9, 24);
+    };
+    const onClick = (event: MouseEvent) => {
+      if (dragging) return;
+      updatePointer(event as unknown as PointerEvent);
+      raycaster.setFromCamera(pointer, camera);
+      if (raycaster.intersectObject(beaconCore, false).length > 0) setInfo(!infoOpen);
+    };
+
+    const resize = () => {
+      const rect = stage.getBoundingClientRect();
+      camera.aspect = rect.width / Math.max(rect.height, 1);
+      camera.updateProjectionMatrix();
+      renderer?.setSize(rect.width, rect.height, false);
+      renderer?.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+    };
+
+    const updateMovement = (delta: number) => {
+      const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+      const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+      const input = new THREE.Vector3();
+      if (keys.has('w')) input.add(forward);
+      if (keys.has('s')) input.sub(forward);
+      if (keys.has('d')) input.add(right);
+      if (keys.has('a')) input.sub(right);
+      if (keys.has('shift')) input.y += 0.72;
+      if (keys.has('control')) input.y -= 0.72;
+      if (input.lengthSq() > 0) input.normalize();
+      const horizontal = new THREE.Vector3(input.x, 0, input.z).multiplyScalar(15.5);
+      velocity.x = THREE.MathUtils.damp(velocity.x, horizontal.x, 7.2, delta);
+      velocity.z = THREE.MathUtils.damp(velocity.z, horizontal.z, 7.2, delta);
+      velocity.y = THREE.MathUtils.damp(velocity.y, input.y * 11.5, 8.5, delta);
+
+      const next = player.clone().addScaledVector(velocity, delta);
+      next.x = THREE.MathUtils.clamp(next.x, bounds.min, bounds.max);
+      next.z = THREE.MathUtils.clamp(next.z, bounds.min, bounds.max);
+      next.y = THREE.MathUtils.clamp(next.y, bounds.minY, bounds.maxY);
+
+      const flat = new THREE.Vector2(next.x, next.z);
+      const radius = flat.length();
+      const collisionRadius = buildingRadiusAt(next.y) + 0.7;
+      if (next.y < 61.2 && radius < collisionRadius) {
+        const normal = flat.lengthSq() > 0.001 ? flat.normalize() : new THREE.Vector2(1, 0);
+        next.x = normal.x * collisionRadius;
+        next.z = normal.y * collisionRadius;
+        const normalVelocity = velocity.x * normal.x + velocity.z * normal.y;
+        if (normalVelocity < 0) {
+          velocity.x -= normal.x * normalVelocity;
+          velocity.z -= normal.y * normalVelocity;
+        }
+      }
+      player.copy(next);
+      playerVisual.position.copy(player);
+    };
+
+    const updateVisualState = (elapsed: number, delta: number) => {
+      const proximitySnapshot = proximityRegistry.update(player, delta);
+      const proximityNode = proximitySnapshot.states[0]!;
+      const nextProximity = proximityNode.active;
+      if (nextProximity !== proximityActive) {
+        proximityActive = nextProximity;
+        proximityState.textContent = proximityActive ? 'NODE / PROXIMITY ACTIVE' : 'NODE / OUTSIDE RANGE';
+        interactionStatus.textContent = proximityActive ? '节点在感知范围内 / 局部光效已激活' : '靠近节点以启动局部光效';
+      }
+      const activation = proximityNode.activation;
+      beacon.userData.activation = activation;
+      beaconCore.scale.setScalar(1 + activation * 0.32 + Math.sin(elapsed * 3.5) * 0.06 * (0.3 + activation));
+      beaconHalo.scale.setScalar(0.84 + activation * 0.5 + Math.sin(elapsed * 2.4) * 0.08);
+      proximityWave.scale.setScalar(0.9 + activation * 1.7 + Math.sin(elapsed * 3.1) * 0.12 * activation);
+      proximityField.scale.setScalar(0.95 + activation * 1.1);
+      (beaconCore.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.5 + activation * 3.2;
+      (beaconHalo.material as THREE.MeshBasicMaterial).opacity = 0.05 + activation * 0.35;
+      (proximityWave.material as THREE.MeshBasicMaterial).opacity = 0.015 + activation * 0.5;
+      (proximityField.material as THREE.MeshBasicMaterial).opacity = 0.012 + activation * 0.16;
+      cyanLight.intensity = 1.3 + activation * 8.5;
+      beaconParticles.rotation.y = elapsed * (0.24 + activation * 0.7);
+      beaconParticles.rotation.x = Math.sin(elapsed * 0.7) * 0.16;
+      rings.forEach((ring, index) => {
+        const material = ring.material as THREE.MeshStandardMaterial;
+        material.emissiveIntensity = 0.25 + activation * (index === 1 ? 4.6 : 2.2);
+        ring.scale.setScalar(1 + activation * (index === 1 ? 0.11 : 0.045));
+      });
+      supports.forEach((support) => {
+        (support.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.22 + activation * 2.8;
+      });
+      if (infoOpen) {
+        beacon.rotation.y = Math.sin(elapsed * 1.8) * 0.08;
+      } else {
+        beacon.rotation.y = 0;
+      }
+      const movementEnergy = THREE.MathUtils.clamp(velocity.length() / 10, 0, 1);
+      playerCore.scale.setScalar(1 + Math.sin(elapsed * 5.4) * 0.05 + movementEnergy * 0.08);
+      playerHalo.scale.setScalar(1 + Math.sin(elapsed * 3.2) * 0.08 + movementEnergy * 0.22);
+      (playerHalo.material as THREE.MeshBasicMaterial).opacity = 0.075 + movementEnergy * 0.095;
+      playerSwarm.rotation.y = elapsed * (0.55 + movementEnergy * 1.3);
+      playerSwarm.rotation.z = Math.sin(elapsed * 1.4) * 0.12;
+      for (let i = trailCount - 1; i > 0; i -= 1) {
+        trailPositions[i * 3] = trailPositions[(i - 1) * 3];
+        trailPositions[i * 3 + 1] = trailPositions[(i - 1) * 3 + 1];
+        trailPositions[i * 3 + 2] = trailPositions[(i - 1) * 3 + 2];
+      }
+      trailPositions[0] = player.x;
+      trailPositions[1] = player.y;
+      trailPositions[2] = player.z;
+      (playerTrail.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      (playerTrail.material as THREE.PointsMaterial).opacity = 0.12 + movementEnergy * 0.32;
+    };
+
+    const updateCamera = (delta: number) => {
+      desiredCamera.set(
+        player.x + Math.sin(yaw) * distance,
+        Math.max(1.3, player.y + 5.5 + Math.sin(pitch) * 12),
+        player.z + Math.cos(yaw) * distance,
+      );
+      camera.position.lerp(desiredCamera, 1 - Math.exp(-7 * delta));
+      target.set(player.x, player.y + 1.5, player.z);
+      camera.lookAt(target);
+      const projected = beacon.position.clone().project(camera);
+      const rect = stage.getBoundingClientRect();
+      const x = (projected.x * 0.5 + 0.5) * rect.width;
+      const y = (-projected.y * 0.5 + 0.5) * rect.height;
+      infoPanel.style.setProperty('--panel-x', `${THREE.MathUtils.clamp(x + 22, 18, rect.width - 270)}px`);
+      infoPanel.style.setProperty('--panel-y', `${THREE.MathUtils.clamp(y - 72, 78, rect.height - 190)}px`);
+    };
+
+    const frame = () => {
+      if (!running) return;
+      const delta = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.elapsedTime;
+      updateMovement(delta);
+      updateVisualState(elapsed, delta);
+      updateCamera(delta);
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    };
+
+    const init = async () => {
+      try {
+        const webgpu = new WebGPURenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+        await webgpu.init();
+        renderer = webgpu;
+        rendererState.textContent = 'WEBGPU / ACTIVE';
+      } catch {
+        try {
+          renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+          renderer.shadowMap.enabled = true;
+          renderer.outputColorSpace = THREE.SRGBColorSpace;
+          rendererState.textContent = 'WEBGL / FALLBACK';
+        } catch {
+          rendererState.textContent = 'HTML / FALLBACK';
+          canvas.hidden = true;
+          fallback.hidden = false;
+          return;
+        }
+      }
+      resize();
+      window.addEventListener('resize', resize);
+      window.addEventListener('keydown', onKeyDown, { passive: false });
+      window.addEventListener('keyup', onKeyUp);
+      canvas.addEventListener('pointermove', (event) => updatePointer(event));
+      canvas.addEventListener('pointerdown', onPointerDown);
+      canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerup', onPointerUp);
+      canvas.addEventListener('pointercancel', onPointerUp);
+      canvas.addEventListener('wheel', onWheel, { passive: false });
+      canvas.addEventListener('click', onClick);
+      camera.position.set(42, 22, 52);
+      camera.lookAt(0, 24, 0);
+      frame();
+    };
+
+    window.addEventListener('pagehide', () => {
+      running = false;
+      renderer?.dispose();
+      scene.traverse((object) => {
+        const mesh = object as THREE.Mesh;
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (Array.isArray(mesh.material)) mesh.material.forEach((material) => material.dispose());
+        else if (mesh.material) mesh.material.dispose();
+      });
+      surfaceMaps.dispose();
+    }, { once: true });
+
+    init();
+  }
+</script>
+
+<style>
+  .vs002-probe { --probe-line: rgba(143, 207, 211, .22); --probe-dim: #7a999f; color: #e7f2f0; height: 100%; position: relative; width: 100%; }
+  .probe-stage { background: #050b10; height: 100dvh; min-height: 0; overflow: hidden; position: relative; }
+  [data-vs002-canvas] { cursor: crosshair; display: block; height: 100%; touch-action: none; width: 100%; }
+  .probe-hud { display: flex; justify-content: space-between; left: 0; padding: 1.2rem 1.3rem; pointer-events: none; position: absolute; right: 0; top: 0; }
+  .probe-kicker, .probe-state, .probe-help, .probe-ledger, .probe-info-label, .probe-info-meta { color: var(--probe-dim); font-family: var(--font-mono); font-size: .63rem; letter-spacing: .12em; text-transform: uppercase; }
+  .probe-kicker { margin: 0 0 .55rem; }
+  .probe-hud h1 { font-size: clamp(1.15rem, 2vw, 1.8rem); font-weight: 400; letter-spacing: -.035em; margin: 0; }
+  .probe-note { color: #96abb0; font-size: .8rem; margin: .6rem 0 0; max-width: 32rem; }
+  .probe-state { align-items: end; display: flex; flex-direction: column; gap: .55rem; text-align: right; }
+  .probe-exit { color: #a9d2d6; pointer-events: auto; text-decoration: none; }
+  .probe-exit:hover { color: #e3fffb; }
+  .probe-state strong { color: #b5d9d8; font-weight: 400; }
+  .probe-help { bottom: 3.7rem; display: flex; flex-wrap: wrap; gap: .9rem 1.2rem; left: 1.3rem; position: absolute; right: 1.3rem; }
+  .probe-help b { color: #d3efed; font-weight: 400; }
+  .probe-info { background: rgba(4, 12, 16, .88); border: 1px solid rgba(132, 220, 217, .62); box-shadow: 0 0 28px rgba(54, 217, 210, .15); left: var(--panel-x, 60%); max-width: 250px; padding: 1rem 1.05rem; pointer-events: none; position: absolute; top: var(--panel-y, 35%); z-index: 2; }
+  .probe-info[hidden] { display: none; }
+  .probe-info-label { color: #8be4df; margin: 0 0 .75rem; }
+  .probe-info h2 { font-size: 1.05rem; font-weight: 400; margin: 0; }
+  .probe-info p:not(.probe-info-label):not(.probe-info-meta) { color: #b5c9ca; font-size: .82rem; line-height: 1.7; margin: .8rem 0; }
+  .probe-info-meta { border-top: 1px solid rgba(143, 207, 211, .2); margin: 0; padding-top: .7rem; }
+  .probe-crosshair { align-items: center; display: flex; inset: 50% auto auto 50%; justify-content: center; pointer-events: none; position: absolute; transform: translate(-50%, -50%); }
+  .probe-crosshair span, .probe-crosshair::before, .probe-crosshair::after { background: rgba(196, 241, 235, .72); content: ''; display: block; position: absolute; }
+  .probe-crosshair span { border: 1px solid rgba(196, 241, 235, .5); border-radius: 50%; height: 8px; width: 8px; }
+  .probe-crosshair::before { height: 1px; width: 22px; }
+  .probe-crosshair::after { height: 22px; width: 1px; }
+  .probe-fallback { inset: 45% 2rem auto; position: absolute; text-align: center; }
+  .probe-fallback strong { font-family: var(--font-mono); font-size: .75rem; letter-spacing: .12em; }
+  .probe-fallback p { color: #96abb0; line-height: 1.7; }
+  .probe-ledger { background: linear-gradient(180deg, rgba(5, 11, 16, .35), rgba(5, 11, 16, .94)); border-top: 1px solid var(--probe-line); bottom: 0; display: flex; flex-wrap: wrap; gap: .7rem 1.8rem; justify-content: space-between; left: 0; padding: .85rem 1rem; position: absolute; right: 0; z-index: 3; }
+  .probe-ledger strong { color: #c1dedc; font-weight: 400; }
+  .probe-ledger span:last-child { color: #94c3c3; }
+  @media (max-width: 680px) { .probe-stage { height: 100dvh; min-height: 0; } .probe-hud { display: block; } .probe-state { align-items: start; margin-top: 1rem; text-align: left; } .probe-note { max-width: 18rem; } .probe-info { left: 1rem; max-width: min(250px, calc(100% - 2rem)); } .probe-help { bottom: 5.8rem; } .probe-ledger { font-size: .56rem; gap: .45rem .8rem; } }
+</style>

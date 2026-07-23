@@ -15,7 +15,7 @@
     </div>
 
     <div class="field-note">
-      <span>VS–001</span>
+      <span>VISUAL PROTOTYPE</span>
       <p>时间决定场的温度与节奏；停留增加复杂度；指针只扰动局部空间。</p>
     </div>
 
@@ -53,10 +53,11 @@
 <script>
   type Density = 'low' | 'medium' | 'high';
 
-  const root = document.querySelector<HTMLElement>('[data-temporal-field]');
+  const root = document.querySelector<HTMLElement>('[data-temporal-field]:not([data-temporal-initialized])');
 
   if (root) {
-    const canvas = root.querySelector<HTMLCanvasElement>('canvas')!;
+    root.dataset.temporalInitialized = 'true';
+    let canvas = root.querySelector<HTMLCanvasElement>('canvas')!;
     const statusText = root.querySelector<HTMLElement>('[data-status]')!;
     const rendererText = root.querySelector<HTMLElement>('[data-renderer]')!;
     const timeText = root.querySelector<HTMLElement>('[data-time]')!;
@@ -68,6 +69,7 @@
     const densitySelect = root.querySelector<HTMLSelectElement>('[data-density-select]')!;
     const message = root.querySelector<HTMLElement>('[data-message]')!;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const forceCanvas = new URLSearchParams(location.search).get('renderer') === 'canvas';
 
     let paused = reduceMotion.matches;
     let density: Density = reduceMotion.matches ? 'low' : 'medium';
@@ -78,6 +80,7 @@
     let pointerY = 0.5;
     let pointerEnergy = 0;
     let renderer: 'webgl' | 'canvas' | 'unsupported' = 'unsupported';
+    let destroyed = false;
     let cleanupRenderer = () => {};
     let renderFrame: (time: number) => void = () => {};
 
@@ -165,11 +168,13 @@
       if (!gl) return false;
 
       const program = gl.createProgram();
-      if (!program) return false;
-      gl.attachShader(program, compileShader(gl, gl.VERTEX_SHADER, vertexSource));
-      gl.attachShader(program, compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource));
+      if (!program) throw new Error('Unable to create WebGL program');
+      const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexSource);
+      const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
       gl.linkProgram(program);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) ?? 'Program link failed');
 
       const buffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -201,7 +206,10 @@
 
       cleanupRenderer = () => {
         if (buffer) gl.deleteBuffer(buffer);
+        gl.deleteShader(vertexShader);
+        gl.deleteShader(fragmentShader);
         gl.deleteProgram(program);
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
       };
       renderer = 'webgl';
       return true;
@@ -240,6 +248,12 @@
       return true;
     }
 
+    function replaceCanvas() {
+      const replacement = canvas.cloneNode(false) as HTMLCanvasElement;
+      canvas.replaceWith(replacement);
+      canvas = replacement;
+    }
+
     function resizeCanvas() {
       const scale = density === 'high' ? Math.min(devicePixelRatio, 1.5) : density === 'medium' ? Math.min(devicePixelRatio, 1.25) : 1;
       const width = Math.max(1, Math.floor(canvas.clientWidth * scale));
@@ -257,33 +271,51 @@
     }
 
     function updateState() {
-      statusText.textContent = paused ? (reduceMotion.matches ? 'REDUCED' : 'PAUSED') : 'RUNNING';
+      statusText.textContent = document.hidden ? 'BACKGROUND' : paused ? (reduceMotion.matches ? 'REDUCED' : 'PAUSED') : 'RUNNING';
       rendererText.textContent = renderer.toUpperCase();
       pauseButton.textContent = paused ? '继续' : '暂停';
       root.dataset.state = paused ? 'paused' : 'running';
     }
 
     function tick(now: number) {
-      updateClock();
+      if (destroyed || paused || document.hidden) {
+        animationId = 0;
+        return;
+      }
       pointerEnergy *= 0.965;
-      if (!paused && !document.hidden) renderFrame(now);
+      renderFrame(now);
       frame++;
       animationId = requestAnimationFrame(tick);
     }
 
+    function startLoop() {
+      if (!destroyed && !paused && !document.hidden && !animationId && renderer !== 'unsupported') {
+        animationId = requestAnimationFrame(tick);
+      }
+    }
+
+    function stopLoop() {
+      if (animationId) cancelAnimationFrame(animationId);
+      animationId = 0;
+    }
+
     function setPaused(value: boolean) {
       paused = value;
+      if (paused) stopLoop();
+      else startLoop();
       updateState();
     }
 
     function initialize() {
       try {
-        if (!setupWebGL() && !setupCanvas()) {
+        if (!(forceCanvas ? false : setupWebGL()) && !setupCanvas()) {
           renderer = 'unsupported';
           message.hidden = false;
           canvas.hidden = true;
         }
       } catch {
+        cleanupRenderer();
+        replaceCanvas();
         if (!setupCanvas()) {
           renderer = 'unsupported';
           message.hidden = false;
@@ -292,47 +324,76 @@
       }
       updateState();
       updateClock();
-      animationId = requestAnimationFrame(tick);
+      startLoop();
     }
 
-    root.addEventListener('pointermove', (event) => {
+    const onPointerMove = (event: PointerEvent) => {
       const bounds = root.getBoundingClientRect();
       pointerX = (event.clientX - bounds.left) / bounds.width;
       pointerY = (event.clientY - bounds.top) / bounds.height;
       pointerEnergy = 1;
-    });
-
-    root.addEventListener('pointerdown', () => { pointerEnergy = 1.35; });
-    pauseButton.addEventListener('click', () => setPaused(!paused));
-    resetButton.addEventListener('click', () => {
+    };
+    const onPointerDown = () => { pointerEnergy = 1.35; };
+    const onPause = () => setPaused(!paused);
+    const onReset = () => {
       startedAt = performance.now();
       pointerEnergy = 0;
       pointerX = 0.5;
       pointerY = 0.5;
       if (paused && !reduceMotion.matches) setPaused(false);
-    });
-    densitySelect.addEventListener('change', () => {
+    };
+    const onDensityChange = () => {
       density = densitySelect.value as Density;
       root.dataset.density = density;
-    });
-    rulesButton.addEventListener('click', () => {
+    };
+    const onRules = () => {
       const expanded = rulesButton.getAttribute('aria-expanded') === 'true';
       rulesButton.setAttribute('aria-expanded', String(!expanded));
       rules.hidden = expanded;
-    });
-    reduceMotion.addEventListener('change', (event) => {
+    };
+    const onReduceMotion = (event: MediaQueryListEvent) => {
       if (event.matches) {
         density = 'low';
         densitySelect.value = 'low';
         root.dataset.density = 'low';
         setPaused(true);
       }
-    });
-    document.addEventListener('visibilitychange', () => updateState());
-    window.addEventListener('pagehide', () => {
-      cancelAnimationFrame(animationId);
+    };
+    const onVisibilityChange = () => {
+      if (document.hidden) stopLoop();
+      else startLoop();
+      updateState();
+    };
+    const clockId = window.setInterval(updateClock, 1000);
+    const cleanup = () => {
+      if (destroyed) return;
+      destroyed = true;
+      stopLoop();
+      window.clearInterval(clockId);
       cleanupRenderer();
-    }, { once: true });
+      root.removeEventListener('pointermove', onPointerMove);
+      root.removeEventListener('pointerdown', onPointerDown);
+      pauseButton.removeEventListener('click', onPause);
+      resetButton.removeEventListener('click', onReset);
+      densitySelect.removeEventListener('change', onDensityChange);
+      rulesButton.removeEventListener('click', onRules);
+      reduceMotion.removeEventListener('change', onReduceMotion);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      document.removeEventListener('astro:before-swap', cleanup);
+      window.removeEventListener('pagehide', cleanup);
+      delete root.dataset.temporalInitialized;
+    };
+
+    root.addEventListener('pointermove', onPointerMove);
+    root.addEventListener('pointerdown', onPointerDown);
+    pauseButton.addEventListener('click', onPause);
+    resetButton.addEventListener('click', onReset);
+    densitySelect.addEventListener('change', onDensityChange);
+    rulesButton.addEventListener('click', onRules);
+    reduceMotion.addEventListener('change', onReduceMotion);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    document.addEventListener('astro:before-swap', cleanup, { once: true });
+    window.addEventListener('pagehide', cleanup, { once: true });
 
     initialize();
   }

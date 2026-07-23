@@ -1,0 +1,25 @@
+---
+import ImmersiveLabLayout from '@layouts/ImmersiveLabLayout.astro';
+import VS002Blockout from '@components/lab/VS002Blockout.astro';
+---
+
+<ImmersiveLabLayout
+  title="VS–002 Server World | Visual Systems"
+  description="探索由个人 NAS、计算机工具与博客内容投射而成的服务器世界。"
+>
+  <main class="vs002-page">
+    <VS002Blockout
+      assetUrl="/assets/vs002/formal/vs002-s2-formal-core-pass.glb"
+      stageLabel="VS–002 / SERVER WORLD"
+      pageTitle="Server World"
+      descriptor="个人服务器世界的空间投射"
+      visualMode="material-lighting"
+      interactionMode="proximity-click"
+      presentation="formal"
+    />
+  </main>
+</ImmersiveLabLayout>
+
+<style>
+  .vs002-page { height: 100dvh; overflow: hidden; width: 100%; }
+</style>

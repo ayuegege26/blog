@@ -4,7 +4,7 @@
 
 **A long-running personal observatory for archives, experiments, systems, and signals.**
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [v0.2.0 Release Notes](RELEASE_NOTES_v0.2.0.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [v0.2.2p Preview Notes](RELEASE_NOTES_v0.2.2p.md)
 
 </div>
 
@@ -14,14 +14,20 @@ Ayue Observatory is a personal publishing and experimentation site built with As
 
 The main site uses **Archive Objects** as its durable content unit: numbered, typed, dated records that can be indexed, revised, and related over time. The separate **Lab** area is reserved for technically ambitious browser experiments and read-only views of periodically collected infrastructure data.
 
-Version `0.2.0` introduces the first complete Lab foundation while preserving the restrained observatory character of the main site.
+Preview `v0.2.2p` expands that foundation into two content-led visual systems: the public-archive map **Archive Atlas** and the in-progress spatial experiment **Server World**. The preview label is intentional: Server World has a usable formal scene and interaction model, while final node content and Gate 5 release acceptance remain unfinished.
 
-## Highlights in v0.2.0
+Production domain: [http://blog.ayuegege26.xyz](http://blog.ayuegege26.xyz). This personal site prioritizes direct access; HTTPS is optional and is not a release requirement.
+
+## Highlights in v0.2.2p Preview
 
 - A dedicated Lab entrance in the main navigation and a restrained introduction portal on the Observatory homepage.
 - A Lab-specific layout and navigation system that remains visually and operationally isolated from the archive site.
-- **Temporal Field**, a browser-native generative time landscape with WebGL rendering and a Canvas fallback.
+- **Archive Atlas (VS–001)** maps seven public Archive Objects by publication time, field, type, lifecycle state, reading length, and explicit `related` links. Search and filtering run in a Web Worker with an equivalent keyboard-accessible result list.
+- **Server World (VS–002 preview)** introduces a navigable 3D world, formal GLB assets, a restrained material and lighting system, reversible proximity reactions, and nine occlusion-aware click nodes.
+- Server World defaults to WebGL, keeps WebGPU opt-in during stabilization, respects reduced-motion preferences, and includes loading and renderer-failure states.
+- The former **Temporal Field** renderer has been retired as a public project and retained only as an internal visual capability prototype.
 - **NAS Constellation**, an interactive visualization backed by periodically collected NAS data.
+- The NAS collector can read the latest terminal result from the vendor Backup Service through a read-only, aggregate-only query without exposing task names, paths, targets, credentials, or logs.
 - A versioned NAS JSON schema, validation layer, fixtures, data-state simulations, collectors, and a read-only Data Gateway.
 - Hourly NAS collection with short-term 24-hour and 7-day aggregated history.
 - Separate deployment paths for the static site, collectors, and Data Gateway.
@@ -39,8 +45,9 @@ Version `0.2.0` introduces the first complete Lab foundation while preserving th
 | `/essays/` | Essay and journal archive view |
 | `/about/` | Site intent and boundaries |
 | `/lab/` | Lab entrance and project directory |
-| `/lab/visual-systems/` | Generative and advanced visual systems |
-| `/lab/visual-systems/temporal-field/` | Temporal Field experiment |
+| `/lab/visual-systems/` | Visual Systems index and Archive Atlas entry |
+| `/lab/visual-systems/archive-atlas/` | VS–001 interactive map generated from seven public Archive Objects |
+| `/lab/visual-systems/vs002/` | VS–002 Server World preview |
 | `/lab/nas-observatory/` | NAS-based observational projects |
 | `/lab/nas-observatory/constellation/` | Live periodic NAS Constellation |
 | `/rss.xml` | Archive Object RSS feed |

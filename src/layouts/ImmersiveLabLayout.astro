@@ -1,0 +1,42 @@
+---
+import '@styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
+---
+
+<!doctype html>
+<html lang="zh-CN" class="immersive-document">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="canonical" href={canonicalUrl.toString()} />
+    <meta name="theme-color" content="#0a1826" />
+    <title>{title}</title>
+  </head>
+  <body class="immersive-body">
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  .immersive-document,
+  .immersive-body {
+    background: #0a1826;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .immersive-body main {
+    height: 100%;
+    max-width: none;
+    width: 100%;
+  }
+</style>

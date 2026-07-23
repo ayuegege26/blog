@@ -4,7 +4,31 @@ This project records stable milestones with semantic versions. / 本项目使用
 
 ## [Unreleased]
 
-- Accumulate real NAS history and evaluate the next Lab project. / 累积真实 NAS 历史数据，并评估下一个 Lab 项目。
+- Complete Server World S5 content, browser stability checks, and Gate 5 acceptance. / 完成 Server World S5 内容、浏览器稳定性检查与 Gate 5 验收。
+
+## [0.2.2p] - 2026-07-23
+
+Preview tag: `v0.2.2p`; package version: `0.2.2-preview.0`. / 预览标签：`v0.2.2p`；包版本：`0.2.2-preview.0`。
+
+### Added / 新增
+
+- Added VS–001 Archive Atlas, generated from seven public MDX Archive Objects with time, field, type, status, reading-length, and explicit-relation views. / 新增 VS–001 Archive Atlas，基于七个公开 MDX Archive Objects 生成时间、领域、类型、状态、阅读长度与显式关系视图。
+- Added Web Worker filtering, URL-persisted view state, pointer exploration, and an equivalent accessible result list for Archive Atlas. / 为 Archive Atlas 新增 Web Worker 筛选、URL 视图状态、指针探索与等价无障碍结果列表。
+- Added the VS–002 Server World preview with formal GLB assets, free-flight navigation, material and lighting passes, proximity reactions, and nine click nodes. / 新增 VS–002 Server World 预览，包含正式 GLB 资产、自由飞行、材质光照、靠近反应与九个点击节点。
+- Added reduced-motion handling, input cleanup, occlusion-aware node interaction, a timed entry layer, and opt-in WebGPU support for VS–002. / 为 VS–002 新增低动态偏好、输入清理、遮挡感知节点、定时进入层和显式启用的 WebGPU 支持。
+- Added read-only aggregate Backup Service status collection for NAS Constellation. / 为 NAS Constellation 新增只读聚合 Backup Service 状态采集。
+
+### Changed / 变更
+
+- Retired Temporal Field as a public project while keeping its renderer as an internal capability prototype. / 撤下 Temporal Field 的公开项目身份，同时保留其 renderer 作为内部能力原型。
+- Set the public canonical base to `http://blog.ayuegege26.xyz`. / 将公开 canonical 基址设为 `http://blog.ayuegege26.xyz`。
+- Updated Lab navigation, project manifests, engineering documents, and NAS deployment behavior for the preview. / 更新 Lab 导航、项目 manifest、工程文档与 NAS 部署行为。
+
+### Preview limitations / 预览限制
+
+- VS–002 nodes still use placeholder copy; final topic mapping and content belong to S5. / VS–002 节点仍使用占位文案；最终主题映射和内容属于 S5。
+- Gate 5 release-candidate acceptance and extended WebGPU stability testing are not complete. / Gate 5 发布候选验收与 WebGPU 长时间稳定性测试尚未完成。
+- The production bundle still reports a large Three.js client chunk warning. / Production 构建仍会报告 Three.js 客户端 chunk 偏大的警告。
 
 ## [0.2.0] - 2026-07-13
 
